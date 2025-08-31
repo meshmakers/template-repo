@@ -1,0 +1,18 @@
+$schema: https://schemas.meshmakers.cloud/runtime-model.schema.json
+dependencies: []
+entities:
+  - rtId: 67e10c0bfe3e19891bbfd261
+    rtCreationDateTime: 2025-03-24T07:38:51.0810000Z
+    rtChangedDateTime: 2025-03-24T11:31:36.9190000Z
+    ckTypeId: System.Communication-1.0.0/MeshAdapter-1.0.0
+    associations: []
+    attributes:
+      - id: System-1.0.0/Name-1.0.0
+        value: SBEG Mesh Adapter
+      - id: System-1.0.0/Description-1.0.0
+      - id: System.Communication-1.0.0/Deployment.ImageName-1.0.0
+      - id: System.Communication-1.0.0/Deployment.ImageVersion-1.0.0
+      - id: System.Communication-1.0.0/AdapterConfiguration-1.0.0
+      - id: System.Communication-1.0.0/CommunicationStateTimestamp-1.0.0
+        value: 2025-03-24T08:06:54.4020000Z
+      - id: System.Communication-1.0.0/StatusMessage-1.0.0
