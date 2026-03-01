@@ -15,26 +15,22 @@ variables:
   - group: GitSSHGroup
   - group: ApiKeys-mm-cloud
   - group: OctoDefault
-  - name: solutionFile
-    value: 'Octo.Template.sln'
-  - name: artifactsFrameworkVersion
-    value: 'net9.0'
+  - name: frontendPath
+    value: 'src/custom-app'
   - name: buildConfiguration
     value: 'Release'
-  - name: buildPlatform
-    value: 'Any CPU'
   - name: isRelease
     value: ${{ startsWith(variables['Build.SourceBranch'], 'refs/tags/r') }}
   - name: isMain
     value: ${{ eq(variables['Build.SourceBranch'], 'refs/heads/main') }}
   - name: isTest
     value: ${{ startsWith(variables['Build.SourceBranch'], 'refs/heads/test') }}
-    
+
 stages:
   - stage: Build
     jobs:
-      - job: linux
-        displayName: Docker build
+      - job: frontend
+        displayName: Frontend Build
         pool:
           name: meshmakers-ci-agents
         steps:
@@ -48,30 +44,37 @@ stages:
               sshPublicKey: '$(SSHPublicKey)'
               sshPassphrase: '$(SSHPassphrase)'
               sshKeySecureFile: '$(SSHPrivateKeyFile)'
-          - template: set-version.yml
-          - template: download-ca.yml
-          - task: DotNetCoreCLI@2
-            displayName: 'Restore NuGet packages'
+          - task: UseNode@1
+            displayName: 'Use Node.js 22.x'
             inputs:
-              command: 'restore'
-              projects: '$(SolutionFile)'
-              restoreArguments: '--force /p:OctoNugetPrivateServer=$(nugetPrivateServer)'
-              noCache: true
-          - task: DotNetCoreCLI@2
-            displayName: 'Test'
+              version: '22.x'
+          - script: |
+              cd $(frontendPath)
+              npm ci
+            displayName: 'npm install'
+          - script: |
+              cd $(frontendPath)
+              npm run lint
+            displayName: 'Lint'
+          - script: |
+              cd $(frontendPath)
+              npm run test:ci
+            displayName: 'Unit Tests'
+          - script: |
+              cd $(frontendPath)
+              npm run build:prod
+            displayName: 'Build Production'
+          - task: PublishTestResults@2
+            displayName: 'Publish Test Results'
             inputs:
-              command: 'test'
-              projects: |
-                '**/*Tests.csproj'
-                !'**/*SystemTests.csproj'
-              testRunTitle: 'CI'
+              testResultsFormat: 'JUnit'
+              testResultsFiles: '$(frontendPath)/test-results/**/*.xml'
+            condition: always()
 #          - template: build-and-push-docker-image.yml
 #            parameters:
 #              PublicRegistryServiceConnection: $(DockerRegistryPublicAcrConnection)
 #              PrivateRegistryName: $(DockerRegistryPrivateUri)
 #              PublicRegistryName: $(DockerRegistryInternalUri)
-#              Repository: meshmakers/octo-template
-#              Dockerfile: src/Template/Dockerfile
+#              Repository: meshmakers/custom-app
+#              Dockerfile: src/custom-app/Dockerfile
           - template: handle-artifacts.yml
- 
-

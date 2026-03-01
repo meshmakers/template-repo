@@ -1,0 +1,22 @@
+{
+  "APP": {
+    "TITLE": "CustomApp",
+    "HOME": "Home",
+    "DEVELOPER_INFO": "Developer Info",
+    "WELCOME": "Welcome to CustomApp",
+    "GETTING_STARTED": "Getting Started"
+  },
+  "COMMON": {
+    "SAVE": "Save",
+    "CANCEL": "Cancel",
+    "DELETE": "Delete",
+    "EDIT": "Edit",
+    "CREATE": "Create",
+    "SEARCH": "Search",
+    "LOADING": "Loading...",
+    "NO_DATA": "No data available",
+    "CONFIRM": "Confirm",
+    "YES": "Yes",
+    "NO": "No"
+  }
+}

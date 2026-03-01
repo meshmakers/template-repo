@@ -1,0 +1,13 @@
+{
+  "plugins": [
+    "prettier-plugin-multiline-arrays",
+    "prettier-plugin-organize-imports"
+  ],
+  "tabWidth": 2,
+  "useTabs": false,
+  "singleQuote": true,
+  "semi": true,
+  "trailingComma": "es5",
+  "endOfLine": "lf",
+  "printWidth": 80
+}

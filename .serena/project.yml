@@ -1,0 +1,6 @@
+project:
+  name: custom-app
+  path: .
+  languages:
+    - typescript
+  file_encoding: utf-8

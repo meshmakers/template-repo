@@ -1,2 +1,2 @@
-# TODO: define tenants to delete
-octo-cli -c delete -tid test
+# Delete tenant for CustomApp
+octo-cli -c delete -tid custom-app

@@ -1,0 +1,16 @@
+<div class="p-6">
+  <h1 class="text-2xl font-semibold mb-4">Developer Info</h1>
+
+  @if (info(); as devInfo) {
+    <div class="space-y-3">
+      <div class="flex gap-2">
+        <span class="font-medium w-32">Version:</span>
+        <code>{{ devInfo.version }}</code>
+      </div>
+      <div class="flex gap-2">
+        <span class="font-medium w-32">Environment:</span>
+        <code>{{ devInfo.environment }}</code>
+      </div>
+    </div>
+  }
+</div>

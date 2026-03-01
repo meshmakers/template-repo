@@ -1,0 +1,33 @@
+overwrite: true
+schema: 'schema.graphql'
+documents: 'src/app/graphQL/*.graphql'
+generates:
+  src/app/graphQL/globalTypes.ts:
+    plugins:
+      - 'typescript'
+    config:
+      enumsAsTypes: true
+      typeSuffix: 'Dto'
+      scalars:
+        OctoObjectId: string
+        CkAttributeId: string
+        CkEnumId: string
+        CkRecordId: string
+        CkTypeId: string
+  src/app/graphQL/:
+    preset: near-operation-file
+    presetConfig:
+      extension: .generated.ts
+      baseTypesPath: globalTypes.ts
+    plugins:
+      - 'typescript-operations'
+      - 'typescript-apollo-angular'
+    config:
+      enumsAsTypes: true
+      typeSuffix: 'Dto'
+      scalars:
+        OctoObjectId: string
+        CkAttributeId: string
+        CkEnumId: string
+        CkRecordId: string
+        CkTypeId: string

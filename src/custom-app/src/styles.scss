@@ -1,0 +1,87 @@
+@use 'tailwindcss';
+
+@use 'flag-icons/sass/flag-icons' with (
+  $flag-icons-included-countries: (
+    gb,
+  )
+);
+
+@theme {
+  --color-primary: #3f51b5;
+  --color-secondary: #ff4081;
+  --color-tertiary: #4caf50;
+  --color-primary-text: #333;
+  --header-line: #e0e0e0;
+}
+
+@layer base {
+  html[data-theme='dark'] {
+    --color-primary: #7986cb;
+    --color-secondary: #ff80ab;
+    --color-tertiary: #81c784;
+    --color-primary-text: #e0e0e0;
+    --header-line: #444;
+  }
+}
+
+* {
+  scrollbar-width: thin;
+}
+
+body {
+  margin: 0;
+  font-family:
+    'Segoe UI',
+    Tahoma,
+    Geneva,
+    Verdana,
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+app-root {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+kendo-appbar {
+  flex-shrink: 0;
+}
+
+kendo-drawer-container {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+kendo-drawer-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+}
+
+.octo-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+  scrollbar-width: thin;
+}
+
+router-outlet {
+  display: none;
+}
+
+[kendodialogcontainer] {
+  flex: 0;
+}
+
+* {
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease;
+}

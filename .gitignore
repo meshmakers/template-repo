@@ -416,3 +416,16 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# Angular / Frontend
+dist/
+.angular/
+coverage/
+.nyc_output/
+test-results/
+src/custom-app/src/app/graphQL/globalTypes.ts
+src/custom-app/src/app/graphQL/*.generated.ts
+
+# npm
+package-lock.json
+!src/custom-app/package-lock.json

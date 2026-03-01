@@ -1,0 +1,17 @@
+.title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0 0.5rem;
+}
+
+.version-label {
+  font-family: 'Roboto Mono', monospace;
+  font-size: 0.7rem;
+  color: #9292a6;
+  letter-spacing: 1px;
+}
+
+.header-area {
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--header-line);
+}
