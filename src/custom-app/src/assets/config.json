@@ -1,10 +1,10 @@
 {
   "tenantId": "custom-app",
   "apiUrl": "https://localhost:5001",
-  "authorityUrl": "https://localhost:5003",
+  "authorityUrl": "https://localhost:5003/",
   "assetServicesUrl": "https://localhost:5005",
-  "clientId": "custom-app-frontend",
-  "scope": "openid profile custom-app.tenantAPI.full_access",
+  "clientId": "custom-app-frontend-debug",
+  "scope": "openid profile assetTenantAPI.full_access offline_access",
   "defaultLanguage": "en-GB",
   "supportedLanguages": [
     {
