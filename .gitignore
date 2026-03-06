@@ -5,6 +5,8 @@
 
 # macOS
 .DS_Store
+copilot.*.xml
+.idea/
 
 # User-specific files
 *.rsuser
