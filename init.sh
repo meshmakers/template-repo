@@ -35,7 +35,7 @@ echo ""
 # --- 2. Derive naming variants ---
 
 # kebab-case: AcmeProject -> acme-project
-KEBAB_CASE=$(echo "$APP_NAME" | sed 's/\([A-Z]\)/-\L\1/g' | sed 's/^-//')
+KEBAB_CASE=$(echo "$APP_NAME" | sed 's/\([A-Z]\)/-\1/g' | sed 's/^-//' | tr '[:upper:]' '[:lower:]')
 # snake_case: AcmeProject -> acme_project
 SNAKE_CASE=$(echo "$KEBAB_CASE" | tr '-' '_')
 # lowercase: AcmeProject -> acmeproject
