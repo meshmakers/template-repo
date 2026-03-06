@@ -431,6 +431,11 @@ test-results/
 src/custom-app/src/app/graphQL/globalTypes.ts
 src/custom-app/src/app/graphQL/*.generated.ts
 
+# SSL dev certificates
+localhost.crt
+localhost.key
+ca.crt
+
 # npm
 package-lock.json
 !src/custom-app/package-lock.json

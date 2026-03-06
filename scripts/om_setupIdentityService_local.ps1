@@ -1,24 +1,26 @@
 # Register OIDC debug client for local development
-# Run this once after setting up the OctoMesh Identity Service
+# Ensure that you have logged in to identity services first (e.g. octo-cli -c LogIn -i)
 
-$identityUrl = "https://localhost:5003"
 $clientId = "custom-app-frontend-debug"
-$redirectUri = "https://localhost:4300"
-$postLogoutRedirectUri = "https://localhost:4300"
+$clientUri = "https://localhost:4300/"
+$redirectUri = "https://localhost:4300/"
+$clientName = "CustomApp Frontend (Debug)"
 
 Write-Host "=== Setting up Identity Service for local development ===" -ForegroundColor Cyan
-Write-Host "Identity URL: $identityUrl"
 Write-Host "Client ID: $clientId"
+Write-Host "Client URI: $clientUri"
 Write-Host ""
 
 # Register the debug frontend client
-octo-cli -c RegisterClient `
-    -cid $clientId `
-    -cn "CustomApp Frontend (Debug)" `
-    -ru $redirectUri `
-    -plru $postLogoutRedirectUri `
-    -gt authorization_code `
-    -sc "openid profile custom-app.tenantAPI.full_access"
+octo-cli -c AddAuthorizationCodeClient `
+    --clienturi $clientUri `
+    --clientid $clientId `
+    --redirectUri $redirectUri `
+    --name $clientName
+
+# Add required scopes
+octo-cli -c AddScopeToClient --clientid $clientId --name "custom-app.tenantAPI.full_access"
+octo-cli -c AddScopeToClient --clientid $clientId --name "assetTenantAPI.full_access"
 
 Write-Host ""
 Write-Host "=== Identity Service setup complete ===" -ForegroundColor Green
