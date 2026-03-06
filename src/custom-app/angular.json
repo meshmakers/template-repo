@@ -83,6 +83,10 @@
           },
           "defaultConfiguration": "development",
           "options": {
+            "port": 4300,
+            "ssl": true,
+            "sslCert": "localhost.crt",
+            "sslKey": "localhost.key",
             "proxyConfig": "proxy.conf.js"
           }
         },

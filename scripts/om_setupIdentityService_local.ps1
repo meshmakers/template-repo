@@ -3,8 +3,8 @@
 
 $identityUrl = "https://localhost:5003"
 $clientId = "custom-app-frontend-debug"
-$redirectUri = "https://localhost:4200"
-$postLogoutRedirectUri = "https://localhost:4200"
+$redirectUri = "https://localhost:4300"
+$postLogoutRedirectUri = "https://localhost:4300"
 
 Write-Host "=== Setting up Identity Service for local development ===" -ForegroundColor Cyan
 Write-Host "Identity URL: $identityUrl"
