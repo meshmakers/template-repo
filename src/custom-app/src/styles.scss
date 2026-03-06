@@ -1,6 +1,8 @@
 @use 'tailwindcss';
 
 @use 'flag-icons/sass/flag-icons' with (
+  $flag-icons-square-path: '/4x3',
+  $flag-icons-path: 'flag-icons/flags',
   $flag-icons-included-countries: (
     gb,
   )
