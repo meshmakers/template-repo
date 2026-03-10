@@ -26,9 +26,11 @@ steps:
     displayName: Build/Push to public/private ${{ parameters.Repository }}:$(Build.BuildNumber)
     inputs:
       script: |
+        docker buildx rm mybuilder 2>/dev/null || true &&
         docker buildx create --use --name mybuilder --bootstrap --config ~/buildkitd.default.toml &&
         docker buildx build --platform ${{ parameters.Architecture }} \
-          --build-arg OCTO_PRIVATE_NUGET_SERVICE="$(NugetPrivateServer)" --build-arg OCTO_PRIVATE_NUGET_CERTIFICATE="$(NugetPrivateServerCa)" \
+          --build-arg OCTO_PRIVATE_NUGET_SERVICE="$(NugetPrivateServer)" --build-arg OCTO_PRIVATE_NUGET_CERTIFICATE="$(NugetPrivateServerCa)" --build-arg OCTO_VERSION="$(OctoVersion)" --build-arg TELERIK_LICENSE="$(TELERIK_LICENSE)" \
+          --build-arg OCTO_LIB_VERSION="$(OctoLibVersion)" --build-arg NPM_PRIVATE_URI="$(NpmPrivateUri)" \
           -f ${{ parameters.Dockerfile }} \
           -t ${{ parameters.PrivateRegistryName }}/${{ parameters.Repository }}:$(Build.BuildNumber) \
           -t ${{ parameters.PublicRegistryName }}/${{ parameters.Repository }}:$(Build.BuildNumber) \
@@ -37,13 +39,15 @@ steps:
         docker buildx rm mybuilder
 
   - task: CmdLine@2
-    condition: or(eq(variables.isMain, true), eq(variables.isTest, true), eq(variables.isRelease, true))
+    condition: or(eq(variables.isTest, true), and(eq(variables.isMain, true), eq(variables.isRelease, false)))
     displayName: Build/Push to private ${{ parameters.Repository }}:$(Build.BuildNumber)
     inputs:
       script: |
+        docker buildx rm mybuilder 2>/dev/null || true &&
         docker buildx create --use --name mybuilder --bootstrap --config ~/buildkitd.default.toml &&
         docker buildx build --platform ${{ parameters.Architecture }} \
-          --build-arg OCTO_PRIVATE_NUGET_SERVICE="$(NugetPrivateServer)" --build-arg OCTO_PRIVATE_NUGET_CERTIFICATE="$(NugetPrivateServerCa)" \
+          --build-arg OCTO_PRIVATE_NUGET_SERVICE="$(NugetPrivateServer)" --build-arg OCTO_PRIVATE_NUGET_CERTIFICATE="$(NugetPrivateServerCa)" --build-arg OCTO_VERSION="$(OctoVersion)" --build-arg TELERIK_LICENSE="$(TELERIK_LICENSE)" \
+          --build-arg OCTO_LIB_VERSION="$(OctoLibVersion)" --build-arg NPM_PRIVATE_URI="$(NpmPrivateUri)" \
           -f ${{ parameters.Dockerfile }} \
           -t ${{ parameters.PrivateRegistryName }}/${{ parameters.Repository }}:$(Build.BuildNumber) \
           --push \
@@ -54,9 +58,11 @@ steps:
     displayName: Build ONLY for non-main/test branch ${{ parameters.Repository }}:$(Build.BuildNumber)
     inputs:
       script: |
+        docker buildx rm mybuilder 2>/dev/null || true &&
         docker buildx create --use --name mybuilder --bootstrap --config ~/buildkitd.default.toml &&
         docker buildx build --platform ${{ parameters.Architecture }} \
-          --build-arg OCTO_PRIVATE_NUGET_SERVICE="$(NugetPrivateServer)" --build-arg OCTO_PRIVATE_NUGET_CERTIFICATE="$(NugetPrivateServerCa)" \
+          --build-arg OCTO_PRIVATE_NUGET_SERVICE="$(NugetPrivateServer)" --build-arg OCTO_PRIVATE_NUGET_CERTIFICATE="$(NugetPrivateServerCa)" --build-arg OCTO_VERSION="$(OctoVersion)" --build-arg TELERIK_LICENSE="$(TELERIK_LICENSE)" \
+          --build-arg OCTO_LIB_VERSION="$(OctoLibVersion)" --build-arg NPM_PRIVATE_URI="$(NpmPrivateUri)" \
           -f ${{ parameters.Dockerfile }} \
           -t ${{ parameters.PrivateRegistryName }}/${{ parameters.Repository }}:$(Build.BuildNumber) \
           $(System.DefaultWorkingDirectory) &&

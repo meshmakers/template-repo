@@ -15,16 +15,14 @@ variables:
   - group: GitSSHGroup
   - group: ApiKeys-mm-cloud
   - group: OctoDefault
-  - name: frontendPath
-    value: 'src/custom-app'
-  - name: buildConfiguration
-    value: 'Release'
   - name: isRelease
     value: ${{ startsWith(variables['Build.SourceBranch'], 'refs/tags/r') }}
   - name: isMain
     value: ${{ eq(variables['Build.SourceBranch'], 'refs/heads/main') }}
   - name: isTest
     value: ${{ startsWith(variables['Build.SourceBranch'], 'refs/heads/test') }}
+  - name: OctoLibVersion
+    value: 'beta' # overridden at runtime by update-build-number.yml (beta/test/latest)
 
 stages:
   - stage: Build
@@ -35,6 +33,7 @@ stages:
           name: meshmakers-ci-agents
         steps:
           - template: update-build-number.yml
+          - template: set-version.yml
           - checkout: self
             clean: true
             submodules: recursive
@@ -44,37 +43,13 @@ stages:
               sshPublicKey: '$(SSHPublicKey)'
               sshPassphrase: '$(SSHPassphrase)'
               sshKeySecureFile: '$(SSHPrivateKeyFile)'
-          - task: UseNode@1
-            displayName: 'Use Node.js 22.x'
-            inputs:
-              version: '22.x'
-          - script: |
-              cd $(frontendPath)
-              npm ci
-            displayName: 'npm install'
-          - script: |
-              cd $(frontendPath)
-              npm run lint
-            displayName: 'Lint'
-          - script: |
-              cd $(frontendPath)
-              npm run test:ci
-            displayName: 'Unit Tests'
-          - script: |
-              cd $(frontendPath)
-              npm run build:prod
-            displayName: 'Build Production'
-          - task: PublishTestResults@2
-            displayName: 'Publish Test Results'
-            inputs:
-              testResultsFormat: 'JUnit'
-              testResultsFiles: '$(frontendPath)/test-results/**/*.xml'
-            condition: always()
-#          - template: build-and-push-docker-image.yml
-#            parameters:
-#              PublicRegistryServiceConnection: $(DockerRegistryPublicAcrConnection)
-#              PrivateRegistryName: $(DockerRegistryPrivateUri)
-#              PublicRegistryName: $(DockerRegistryInternalUri)
-#              Repository: meshmakers/custom-app
-#              Dockerfile: src/custom-app/Dockerfile
+          - template: download-ca.yml
+          - template: setup-telerik-license.yml
+          - template: run-tests.yml
+          - template: build-and-push-docker-image.yml
+            parameters:
+              PublicRegistryServiceConnection: $(DockerRegistryPublicConnection)
+              PrivateRegistryName: $(DockerRegistryPrivateUri)
+              Repository: meshmakers/custom-app
+              Dockerfile: src/custom-app/Dockerfile
           - template: handle-artifacts.yml

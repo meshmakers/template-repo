@@ -98,8 +98,7 @@
             "runner": "vitest",
             "reporters": [
               "default"
-            ],
-            "config": "vitest.config.ts"
+            ]
           },
           "configurations": {
             "ci": {

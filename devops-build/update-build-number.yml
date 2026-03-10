@@ -19,7 +19,8 @@ steps:
       $revision = [int]$versionArray[3]
       $buildNumberShort = "$major.$minor.$build"
       $buildNumberLong = "$major.$minor.$build.$revision"
-      
+
+      $octoVersion = "0.1.*";
       if ($branch.StartsWith("refs/heads/test/")) {
         Write-host "Branch is test branch"
         $branchName = '$(Build.SourceBranchName)'
@@ -34,8 +35,11 @@ steps:
         $fullBuildNumber = "$major.$minor.$build.$revision-$newBranchName"
         Write-Host "Setting build number to $buildNumberLong"
         Write-Host "##vso[build.updatebuildnumber]$fullBuildNumber"
+
+        $octoVersion = "$major.$minor.*"
+        Write-Host "Setting OctoVersion to $octoVersion"
       }
-      
+
       if ($branch.StartsWith("refs/tags/r")) {
         Write-host "Branch is release branch"
         $branchName = '$(Build.SourceBranchName)'
@@ -49,9 +53,22 @@ steps:
         Write-Host "Setting build number to $buildNumberLong"
         Write-Host "##vso[build.updatebuildnumber]$buildNumberLong"
       }
+      # OctoLibVersion: npm dist-tag for @meshmakers/* library versions
+      # Must match the tags used by the octo-frontend-libraries pipeline
+      $octoLibVersion = "beta"
+      if ($branch.StartsWith("refs/heads/test/")) {
+        $octoLibVersion = "test"
+      }
+      if ($branch.StartsWith("refs/tags/r")) {
+        $octoLibVersion = "latest"
+      }
+
       Write-Host "Setting build number short to '$buildNumberShort', build number long to '$buildNumberLong'"
       Write-Host "##vso[task.setvariable variable=MajorVersion;]$major"
       Write-Host "##vso[task.setvariable variable=MinorVersion;]$minor"
       Write-Host "##vso[task.setvariable variable=BuildNumberShort;]$buildNumberShort"
       Write-Host "##vso[task.setvariable variable=BuildNumberLong;]$buildNumberLong"
+      Write-Host "##vso[task.setvariable variable=OctoVersion;]$octoVersion"
+      Write-Host "Setting OctoLibVersion to $octoLibVersion"
+      Write-Host "##vso[task.setvariable variable=OctoLibVersion;]$octoLibVersion"
   displayName: 'Set build number'

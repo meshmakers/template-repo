@@ -1,0 +1,84 @@
+steps:
+  - task: NodeTool@0
+    displayName: 'Install Node.js'
+    inputs:
+      versionSpec: '22.x'
+
+  - task: CmdLine@2
+    displayName: 'Replace file: references with registry versions'
+    inputs:
+      script: |
+        export NODE_EXTRA_CA_CERTS="$(System.DefaultWorkingDirectory)/$(NugetPrivateServerCa)"
+        echo "NODE_EXTRA_CA_CERTS=$NODE_EXTRA_CA_CERTS"
+        echo "OctoLibVersion: $(OctoLibVersion)"
+        echo "NpmPrivateUri: $(NpmPrivateUri)"
+
+        # Configure private registry for @meshmakers scope
+        echo "@meshmakers:registry=$(NpmPrivateUri)" > .npmrc
+        cat .npmrc
+
+        # Resolve actual version from dist-tag via private registry
+        RESOLVED_VERSION=$(npm view "@meshmakers/octo-services@$(OctoLibVersion)" version 2>&1)
+        echo "Resolved @meshmakers/octo-services@$(OctoLibVersion) -> $RESOLVED_VERSION"
+
+        if [ -z "$RESOLVED_VERSION" ] || echo "$RESOLVED_VERSION" | grep -qi "error"; then
+          echo "##[error]Failed to resolve version from dist-tag $(OctoLibVersion)"
+          exit 1
+        fi
+
+        # Replace file: references with resolved version (not dist-tag)
+        node -e "
+          const fs = require('fs');
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          const v = '$RESOLVED_VERSION';
+          console.log('Using resolved version:', v);
+          Object.keys(pkg.dependencies)
+            .filter(k => k.startsWith('@meshmakers/'))
+            .forEach(k => {
+              console.log('  ' + k + ': ' + pkg.dependencies[k] + ' -> ' + v);
+              pkg.dependencies[k] = v;
+            });
+          fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));
+        "
+
+        # Update lock file to match modified package.json, then use npm ci for deterministic install
+        npm install --package-lock-only
+        echo "Done. package-lock.json updated with resolved @meshmakers versions."
+      workingDirectory: $(System.DefaultWorkingDirectory)/src/custom-app
+
+  - task: CmdLine@2
+    displayName: 'Install dependencies'
+    inputs:
+      script: |
+        export NODE_EXTRA_CA_CERTS="$(System.DefaultWorkingDirectory)/$(NugetPrivateServerCa)"
+        npm ci
+      workingDirectory: $(System.DefaultWorkingDirectory)/src/custom-app
+
+  - task: CmdLine@2
+    displayName: 'Run lint'
+    inputs:
+      script: npm run lint
+      workingDirectory: $(System.DefaultWorkingDirectory)/src/custom-app
+
+  - task: CmdLine@2
+    displayName: 'Run unit tests'
+    inputs:
+      script: npm run test:ci
+      workingDirectory: $(System.DefaultWorkingDirectory)/src/custom-app
+    continueOnError: false
+
+  - task: PublishTestResults@2
+    displayName: 'Publish test results'
+    condition: succeededOrFailed()
+    inputs:
+      testResultsFormat: 'JUnit'
+      testResultsFiles: '**/test-results/**/*.xml'
+      searchFolder: $(System.DefaultWorkingDirectory)/src/custom-app
+      mergeTestResults: true
+      testRunTitle: 'Unit Tests - custom-app'
+
+  - task: CmdLine@2
+    displayName: 'Build Production'
+    inputs:
+      script: npm run build:prod
+      workingDirectory: $(System.DefaultWorkingDirectory)/src/custom-app
