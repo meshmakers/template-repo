@@ -8,8 +8,8 @@ trigger:
       - test/*
       - main
   tags:
-    exclude:
-      - '*'
+    include:
+      - 'r*'
 
 variables:
   - group: GitSSHGroup
@@ -48,8 +48,17 @@ stages:
           - template: run-tests.yml
           - template: build-and-push-docker-image.yml
             parameters:
-              PublicRegistryServiceConnection: $(DockerRegistryPublicConnection)
+              PublicRegistryServiceConnection: $(DockerRegistryPublicAcrConnection)
               PrivateRegistryName: $(DockerRegistryPrivateUri)
+              PublicRegistryName: $(DockerRegistryInternalUri)
               Repository: meshmakers/custom-app
               Dockerfile: src/custom-app/Dockerfile
+          - task: HelmDeploy@0
+            displayName: 'helm package custom-app'
+            inputs:
+              command: package
+              chartPath: '$(System.DefaultWorkingDirectory)/src/charts/custom-app'
+              chartVersion: '$(BuildNumberShort)'
+              destination: '$(Build.artifactstagingdirectory)'
+              arguments: '--app-version $(Build.BuildNumber) --dependency-update'
           - template: handle-artifacts.yml

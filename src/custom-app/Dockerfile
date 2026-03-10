@@ -34,9 +34,9 @@ RUN echo "@meshmakers:registry=${NPM_PRIVATE_URI:-https://registry.npmjs.org}" >
     }); \
     fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2)); \
   " \
-  && npm install --package-lock-only
+  && npm install --package-lock-only --ignore-scripts
 
-RUN npm ci
+RUN npm ci --ignore-scripts
 
 COPY src/custom-app/ ./
 

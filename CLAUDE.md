@@ -25,6 +25,14 @@ After cloning, run `./init.sh` to customize the template for your project.
 - Vitest + Playwright (testing)
 - TypeScript 5.9
 
+## Pre-Commit Rules (CRITICAL)
+
+- **ALWAYS write tests** for every code change (new features, bug fixes, refactoring)
+- **ALWAYS run `npm run lint && npm run test:ci && npm run build:prod`** locally before committing and pushing
+- This catches lint errors, test failures, and TypeScript compilation errors before CI
+- Test files follow the pattern `*.spec.ts` next to the source file they test
+- Components that import `@meshmakers/shared-ui` cannot be tested directly in vitest (cronstrue ESM issue) — use pure logic tests or Playwright e2e tests instead
+
 ## Build & Development
 
 ```bash
