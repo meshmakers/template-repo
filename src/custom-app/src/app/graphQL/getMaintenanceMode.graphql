@@ -1,0 +1,13 @@
+query GetMaintenanceMode {
+  runtime {
+    systemTenantModeConfiguration(first: 1) {
+      edges {
+        node {
+          rtId
+          maintenanceLevel
+          environmentMode
+        }
+      }
+    }
+  }
+}

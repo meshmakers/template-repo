@@ -33,10 +33,10 @@ stages:
           name: meshmakers-ci-agents
         steps:
           - template: update-build-number.yml
-          - template: set-version.yml
           - checkout: self
             clean: true
             submodules: recursive
+          - template: set-version.yml
           - task: InstallSSHKey@0
             inputs:
               knownHostsEntry: '$(SSHKnownHosts)'

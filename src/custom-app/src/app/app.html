@@ -1,3 +1,6 @@
+@if (maintenanceMode$ | async) {
+  <app-maintenance-mode />
+} @else {
 <kendo-appbar position="top" themeColor="dark">
   <kendo-appbar-section>
     <button kendoButton fillMode="flat" (click)="toggleDrawer()">
@@ -62,3 +65,5 @@
     </div>
   </kendo-drawer-content>
 </kendo-drawer-container>
+<div kendoDialogContainer></div>
+}

@@ -12,11 +12,46 @@
     "DELETE": "Delete",
     "EDIT": "Edit",
     "CREATE": "Create",
-    "SEARCH": "Search",
+    "SEARCH": "Search in all columns...",
     "LOADING": "Loading...",
     "NO_DATA": "No data available",
+    "NO_RECORDS": "No records available.",
     "CONFIRM": "Confirm",
     "YES": "Yes",
-    "NO": "No"
+    "NO": "No",
+    "SAVING": "Saving...",
+    "UPDATE": "Update",
+    "BACK": "Back",
+    "NEW": "New",
+    "VIEW_DETAILS": "View Details",
+    "UNSAVED_CHANGES": "Unsaved Changes",
+    "UNSAVED_CHANGES_MESSAGE": "You have unsaved changes. Are you sure you want to leave? Your changes will be lost.",
+    "UNSAVED_CHANGES_YES": "Yes",
+    "UNSAVED_CHANGES_NO": "No",
+    "MODIFIED": "MODIFIED",
+    "READY": "READY"
+  },
+  "LIST_VIEW": {
+    "SEARCH_PLACEHOLDER": "Search in all columns...",
+    "SHOW_ROW_FILTER": "Show Row Filter",
+    "EXPORT_TO_EXCEL": "Export to Excel",
+    "EXPORT_TO_PDF": "Export to PDF",
+    "REFRESH_DATA": "Refresh Data",
+    "ACTIONS_COLUMN_TITLE": "Actions",
+    "PDF_PAGE_TEMPLATE": "Page {pageNum} of {totalPages}",
+    "PAGER_ITEMS_PER_PAGE": "items per page",
+    "PAGER_OF": "of",
+    "PAGER_ITEMS": "items",
+    "PAGER_PAGE": "Page",
+    "PAGER_FIRST_PAGE": "Go to the first page",
+    "PAGER_LAST_PAGE": "Go to the last page",
+    "PAGER_PREVIOUS_PAGE": "Go to the previous page",
+    "PAGER_NEXT_PAGE": "Go to the next page",
+    "NO_RECORDS": "No records available."
+  },
+  "MAINTENANCE": {
+    "TITLE": "Maintenance Mode",
+    "MESSAGE": "The application is currently undergoing maintenance and is temporarily unavailable.",
+    "SUBMESSAGE": "Please try again later."
   }
 }
