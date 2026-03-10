@@ -3,8 +3,11 @@
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
+    "setup-license": "node scripts/setup-license.js",
+    "prestart": "npm run setup-license",
     "start": "ng serve",
     "build": "npm run lint && ng build",
+    "prebuild:prod": "npm run setup-license",
     "build:prod": "ng build --configuration production",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",

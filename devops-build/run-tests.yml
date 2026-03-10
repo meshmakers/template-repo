@@ -82,3 +82,5 @@ steps:
     inputs:
       script: npm run build:prod
       workingDirectory: $(System.DefaultWorkingDirectory)/src/custom-app
+    env:
+      TELERIK_LICENSE: $(TELERIK_LICENSE)

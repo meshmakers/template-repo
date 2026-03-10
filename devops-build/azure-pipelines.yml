@@ -53,6 +53,10 @@ stages:
               PublicRegistryName: $(DockerRegistryInternalUri)
               Repository: meshmakers/custom-app
               Dockerfile: src/custom-app/Dockerfile
+          - task: HelmInstaller@1
+            displayName: 'Install Helm'
+            inputs:
+              helmVersionToInstall: '3.19.0'
           - task: HelmDeploy@0
             displayName: 'helm package custom-app'
             inputs:
