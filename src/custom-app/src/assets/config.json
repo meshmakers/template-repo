@@ -4,7 +4,7 @@
   "authorityUrl": "https://localhost:5003/",
   "assetServicesUrl": "https://localhost:5005",
   "clientId": "custom-app-frontend-debug",
-  "scope": "openid profile assetTenantAPI.full_access offline_access",
+  "scope": "openid profile octo_api offline_access",
   "defaultLanguage": "en-GB",
   "supportedLanguages": [
     {

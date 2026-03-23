@@ -19,7 +19,7 @@ octo-cli -c AddAuthorizationCodeClient `
     --name $clientName
 
 # Add required scopes
-octo-cli -c AddScopeToClient --clientid $clientId --name "assetTenantAPI.full_access"
+octo-cli -c AddScopeToClient --clientid $clientId --name "octo_api"
 octo-cli -c AddScopeToClient --clientid $clientId --name "offline_access"
 
 Write-Host ""
