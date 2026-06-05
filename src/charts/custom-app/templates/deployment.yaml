@@ -53,7 +53,7 @@ spec:
             - name: CONFIG_API_URL
               value: {{ .Values.config.apiUrl | quote }}
             - name: CONFIG_AUTHORITY_URL
-              value: {{ .Values.config.authorityUrl | quote }}
+              value: {{ printf "%s/" (trimSuffix "/" .Values.config.authorityUrl) | quote }}
             - name: CONFIG_ASSET_SERVICES_URL
               value: {{ .Values.config.assetServicesUrl | quote }}
             - name: CONFIG_CLIENT_ID
