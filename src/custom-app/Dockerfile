@@ -2,7 +2,7 @@ FROM nginx:alpine AS base
 WORKDIR /usr/share/nginx/html
 EXPOSE 80
 
-FROM node:22-alpine AS build
+FROM node:24.15-alpine AS build
 
 ARG TELERIK_LICENSE
 ENV TELERIK_LICENSE=${TELERIK_LICENSE}
@@ -34,9 +34,12 @@ RUN echo "@meshmakers:registry=${NPM_PRIVATE_URI:-https://registry.npmjs.org}" >
     }); \
     fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2)); \
   " \
-  && npm install --package-lock-only --ignore-scripts
+  && npm install --package-lock-only --ignore-scripts --legacy-peer-deps
 
-RUN npm ci --ignore-scripts
+# --legacy-peer-deps: the published @meshmakers/* libs peer @angular/* ^21 until
+# Tier 0 (octo-frontend-libraries) ships on v22. Tolerate the stale peer metadata;
+# the kendo grid peers we rely on are declared directly in package.json.
+RUN npm ci --ignore-scripts --legacy-peer-deps
 
 COPY src/custom-app/ ./
 

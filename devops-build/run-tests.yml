@@ -2,7 +2,7 @@ steps:
   - task: NodeTool@0
     displayName: 'Install Node.js'
     inputs:
-      versionSpec: '22.x'
+      versionSpec: '24.15.x'
 
   - task: CmdLine@2
     displayName: 'Replace file: references with registry versions'
@@ -41,8 +41,9 @@ steps:
           fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));
         "
 
-        # Update lock file to match modified package.json, then use npm ci for deterministic install
-        npm install --package-lock-only
+        # Update lock file to match modified package.json, then use npm ci for deterministic install.
+        # --legacy-peer-deps: published @meshmakers/* libs peer @angular/* ^21 until Tier 0 ships on v22.
+        npm install --package-lock-only --legacy-peer-deps
         echo "Done. package-lock.json updated with resolved @meshmakers versions."
       workingDirectory: $(System.DefaultWorkingDirectory)/src/custom-app
 
@@ -51,7 +52,7 @@ steps:
     inputs:
       script: |
         export NODE_EXTRA_CA_CERTS="$(System.DefaultWorkingDirectory)/$(NugetPrivateServerCa)"
-        npm ci
+        npm ci --legacy-peer-deps
       workingDirectory: $(System.DefaultWorkingDirectory)/src/custom-app
 
   - task: CmdLine@2
