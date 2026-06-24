@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import { SVGIconComponent } from '@progress/kendo-angular-icons';
 import { wrenchIcon } from '@progress/kendo-svg-icons';
@@ -14,11 +14,16 @@ import { wrenchIcon } from '@progress/kendo-svg-icons';
           <kendo-svgicon [icon]="wrenchIcon" size="xxxlarge"></kendo-svgicon>
         </div>
         <h1 class="maintenance-title">{{ 'MAINTENANCE.TITLE' | translate }}</h1>
-        <p class="maintenance-message">{{ 'MAINTENANCE.MESSAGE' | translate }}</p>
-        <p class="maintenance-submessage">{{ 'MAINTENANCE.SUBMESSAGE' | translate }}</p>
+        <p class="maintenance-message">
+          {{ 'MAINTENANCE.MESSAGE' | translate }}
+        </p>
+        <p class="maintenance-submessage">
+          {{ 'MAINTENANCE.SUBMESSAGE' | translate }}
+        </p>
       </div>
     </div>
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   styles: [
     `
       :host {

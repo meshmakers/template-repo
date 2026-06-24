@@ -48,6 +48,12 @@ module.exports = tseslint.config(
       '@angular-eslint/component-class-suffix': 'error',
       '@angular-eslint/directive-class-suffix': 'error',
       '@angular-eslint/use-lifecycle-interface': 'error',
+      // New in angular-eslint 22's recommended set; conflicts with the Angular 22
+      // change-detection-eager migration, which explicitly sets
+      // ChangeDetectionStrategy.Eager on every component to preserve pre-v22
+      // CheckAlways behavior. Disabled until components are intentionally moved
+      // to OnPush.
+      '@angular-eslint/prefer-on-push-component-change-detection': 'off',
     },
   },
   {
