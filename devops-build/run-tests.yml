@@ -42,8 +42,7 @@ steps:
         "
 
         # Update lock file to match modified package.json, then use npm ci for deterministic install.
-        # --legacy-peer-deps: published @meshmakers/* libs peer @angular/* ^21 until Tier 0 ships on v22.
-        npm install --package-lock-only --legacy-peer-deps
+        npm install --package-lock-only
         echo "Done. package-lock.json updated with resolved @meshmakers versions."
       workingDirectory: $(System.DefaultWorkingDirectory)/src/custom-app
 
@@ -52,7 +51,7 @@ steps:
     inputs:
       script: |
         export NODE_EXTRA_CA_CERTS="$(System.DefaultWorkingDirectory)/$(NugetPrivateServerCa)"
-        npm ci --legacy-peer-deps
+        npm ci
       workingDirectory: $(System.DefaultWorkingDirectory)/src/custom-app
 
   - task: CmdLine@2

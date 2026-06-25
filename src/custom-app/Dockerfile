@@ -34,12 +34,11 @@ RUN echo "@meshmakers:registry=${NPM_PRIVATE_URI:-https://registry.npmjs.org}" >
     }); \
     fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2)); \
   " \
-  && npm install --package-lock-only --ignore-scripts --legacy-peer-deps
+  && npm install --package-lock-only --ignore-scripts
 
-# --legacy-peer-deps: the published @meshmakers/* libs peer @angular/* ^21 until
-# Tier 0 (octo-frontend-libraries) ships on v22. Tolerate the stale peer metadata;
-# the kendo grid peers we rely on are declared directly in package.json.
-RUN npm ci --ignore-scripts --legacy-peer-deps
+# Published @meshmakers/* libs now peer @angular/* ^22 (Tier 0 shipped on v22),
+# so a strict install resolves cleanly.
+RUN npm ci --ignore-scripts
 
 COPY src/custom-app/ ./
 
