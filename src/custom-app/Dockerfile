@@ -2,7 +2,7 @@ FROM nginx:alpine AS base
 WORKDIR /usr/share/nginx/html
 EXPOSE 80
 
-FROM node:22-alpine AS build
+FROM node:24.15-alpine AS build
 
 ARG TELERIK_LICENSE
 ENV TELERIK_LICENSE=${TELERIK_LICENSE}
@@ -36,6 +36,8 @@ RUN echo "@meshmakers:registry=${NPM_PRIVATE_URI:-https://registry.npmjs.org}" >
   " \
   && npm install --package-lock-only --ignore-scripts
 
+# Published @meshmakers/* libs now peer @angular/* ^22 (Tier 0 shipped on v22),
+# so a strict install resolves cleanly.
 RUN npm ci --ignore-scripts
 
 COPY src/custom-app/ ./

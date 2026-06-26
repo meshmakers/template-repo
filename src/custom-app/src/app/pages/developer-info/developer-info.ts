@@ -1,4 +1,10 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  inject,
+  signal,
+} from '@angular/core';
 import {
   DevelopmentInfo,
   DiagnosticsService,
@@ -8,6 +14,7 @@ import {
   selector: 'app-developer-info',
   standalone: true,
   templateUrl: './developer-info.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './developer-info.scss',
 })
 export class DeveloperInfoComponent implements OnInit {

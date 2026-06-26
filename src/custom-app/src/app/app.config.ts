@@ -1,47 +1,45 @@
 import {
+  HttpClient,
+  provideHttpClient,
+  withInterceptors,
+  withXhr,
+} from '@angular/common/http';
+import {
   ApplicationConfig,
   inject,
   provideAppInitializer,
   provideZoneChangeDetection,
 } from '@angular/core';
-import {
-  provideHttpClient,
-  withInterceptors,
-} from '@angular/common/http';
 import { provideAnimations } from '@angular/platform-browser/animations';
 import { provideRouter } from '@angular/router';
 import { InMemoryCache } from '@apollo/client/core';
-import { provideApollo } from 'apollo-angular';
-import { HttpLink } from 'apollo-angular/http';
-import { TranslateLoader } from '@ngx-translate/core';
-import { provideTranslateService } from '@ngx-translate/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { provideOctoUi } from '@meshmakers/octo-ui';
 import {
   authorizeInterceptor,
   AuthorizeService,
   provideMmSharedAuth,
 } from '@meshmakers/shared-auth';
-import { provideOctoUi } from '@meshmakers/octo-ui';
 import {
   CommandService,
   CommandSettingsService,
 } from '@meshmakers/shared-services';
+import { provideTranslateService, TranslateLoader } from '@ngx-translate/core';
+import { provideApollo } from 'apollo-angular';
+import { HttpLink } from 'apollo-angular/http';
+import { Observable } from 'rxjs';
 import { routes } from './app.routes';
-import { ConfigurationService } from './services/configuration.service';
-import { LanguageService } from './services/language.service';
-import { AppTitleService } from './services/app-title.service';
-import { MyCommandSettingsService } from './services/my-command-settings.service';
 import { defaultAuthorizeOptions } from './config/defaultAuthorizeOptions';
 import { defaultOctoServiceOptions } from './config/defaultOctoServiceOptions';
+import { AppTitleService } from './services/app-title.service';
+import { ConfigurationService } from './services/configuration.service';
+import { LanguageService } from './services/language.service';
+import { MyCommandSettingsService } from './services/my-command-settings.service';
 
 class AppTranslationLoader implements TranslateLoader {
   private readonly http = inject(HttpClient);
 
   getTranslation(lang: string): Observable<Record<string, string>> {
-    return this.http.get<Record<string, string>>(
-      `/assets/i18n/${lang}.json`
-    );
+    return this.http.get<Record<string, string>>(`/assets/i18n/${lang}.json`);
   }
 }
 
@@ -71,7 +69,7 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideAnimations(),
-    provideHttpClient(withInterceptors([authorizeInterceptor])),
+    provideHttpClient(withXhr(), withInterceptors([authorizeInterceptor])),
     provideRouter(routes),
     provideOctoUi(),
     provideMmSharedAuth(),

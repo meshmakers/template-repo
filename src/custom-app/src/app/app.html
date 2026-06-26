@@ -1,7 +1,7 @@
 @if (maintenanceMode$ | async) {
   <app-maintenance-mode />
 } @else {
-<kendo-appbar position="top" themeColor="dark">
+<kendo-appbar position="top" themeColor="inverse">
   <kendo-appbar-section>
     <button kendoButton fillMode="flat" (click)="toggleDrawer()">
       <kendo-svg-icon [icon]="menuIcon"></kendo-svg-icon>
