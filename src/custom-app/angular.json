@@ -105,7 +105,8 @@
               "reporters": [
                 "default",
                 "junit"
-              ]
+              ],
+              "outputFile": "test-results/TESTS-junit.xml"
             }
           }
         },
