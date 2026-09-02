@@ -57,6 +57,12 @@ npm run build:prod
 npm run codegen
 ```
 
+## npm install-script policy
+
+`src/custom-app/package.json` carries an `allowScripts` field approving the six dependencies that ship install scripts: `@parcel/watcher`, `@progress/kendo-licensing`, `esbuild`, `fsevents`, `lmdb` and `msgpackr-extract`. All but `@progress/kendo-licensing` (Kendo license activation) only unpack prebuilt native binaries. Entries are name-only, written by `npm approve-scripts --no-allow-scripts-pin --all` after a full install; re-run that command when a new package starts warning.
+
+In npm 11.16 the field is advisory — an unapproved install script still runs, npm only warns. The image is unaffected either way because `src/custom-app/Dockerfile` installs with `npm ci --ignore-scripts`, so no install script runs during the Docker build and the policy is inert there.
+
 ## Key Patterns
 
 ### Standalone Components (Angular 21)
