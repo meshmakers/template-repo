@@ -31,7 +31,7 @@ After cloning, run `./init.sh` to customize the template for your project.
 - **ALWAYS run `npm run lint && npm run test:ci && npm run build:prod`** locally before committing and pushing
 - This catches lint errors, test failures, and TypeScript compilation errors before CI
 - Test files follow the pattern `*.spec.ts` next to the source file they test
-- Components that import `@meshmakers/shared-ui` cannot be tested directly in vitest — extract the logic into a pure, testable unit instead; unit tests only, pure logic first (tracked in AB#5075)
+- Unit tests only, on Vitest: extract logic out of components that render `@meshmakers/*` widgets into pure, testable units and test those first.
 
 ## Unit tests
 
