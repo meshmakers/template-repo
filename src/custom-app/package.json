@@ -93,7 +93,7 @@
     "@graphql-codegen/near-operation-file-preset": "4.0.0",
     "@graphql-codegen/typescript": "5.0.8",
     "@graphql-codegen/typescript-apollo-angular": "5.0.1",
-    "@graphql-codegen/typescript-operations": "5.0.8",
+    "@graphql-codegen/typescript-operations": "6.1.6",
     "@tailwindcss/postcss": "4.3.3",
     "@vitest/coverage-v8": "4.1.11",
     "angular-eslint": "22.2.0",
