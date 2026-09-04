@@ -1,0 +1,19 @@
+version: 2
+
+updates:
+  - package-ecosystem: npm
+    directory: /src/custom-app
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: docker
+    directory: /src/custom-app
+    schedule:
+      interval: weekly
+    ignore:
+      # The meshmakers platform images are bumped deliberately together with the
+      # platform toolchain. Dependabot also misreads their legacy tag scheme,
+      # where "8.0-<date>" sorts above "1.3.0.0".
+      - dependency-name: "meshmakers/*"
+      - dependency-name: "nginx"
+        update-types: ["version-update:semver-major"]

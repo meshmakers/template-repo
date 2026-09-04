@@ -29,7 +29,7 @@ The dev server starts at `http://localhost:4200`.
 
 ## Prerequisites
 
-- **Node.js** 22+ (see `.nvmrc`)
+- **Node.js** 24+ (see `.nvmrc`)
 - **npm** 10+
 - **OctoMesh Platform** (Identity Server, API, Asset Services) running locally or accessible
 - **octo-cli** for tenant management scripts

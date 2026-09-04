@@ -56,7 +56,7 @@ stages:
           - task: HelmInstaller@1
             displayName: 'Install Helm'
             inputs:
-              helmVersionToInstall: '3.19.0'
+              helmVersionToInstall: '4.2.4'
           - task: HelmDeploy@0
             displayName: 'helm package custom-app'
             inputs:

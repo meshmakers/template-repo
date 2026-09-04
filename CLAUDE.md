@@ -23,7 +23,7 @@ After cloning, run `./init.sh` to customize the template for your project.
 - Apollo GraphQL Client
 - Tailwind CSS 4
 - Vitest (testing, via `@angular/build:unit-test`, jsdom — no browser)
-- TypeScript 5.9
+- TypeScript 6.0
 
 ## Pre-Commit Rules (CRITICAL)
 
