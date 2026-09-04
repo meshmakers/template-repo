@@ -37,7 +37,7 @@
     "@meshmakers/shared-ui": "*",
     "@ngx-translate/core": "17.0.0",
     "@progress/kendo-angular-buttons": "24.1.0",
-    "@progress/kendo-angular-common": "24.1.0",
+    "@progress/kendo-angular-common": "25.0.0",
     "@progress/kendo-angular-conversational-ui": "24.1.0",
     "@progress/kendo-angular-dateinputs": "24.1.0",
     "@progress/kendo-angular-dialog": "24.1.0",
