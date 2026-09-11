@@ -1,0 +1,12 @@
+$schema: https://schemas.meshmakers.cloud/blueprint-meta.schema.json
+blueprintId: CustomApp-1.0.0
+description: |
+  Example blueprint of the custom app. Seeds one Item of the CustomApp
+  Construction Kit so a freshly installed tenant shows data right away.
+  Replace the seed data with the entities your app needs on a new tenant.
+
+ckModelDependencies:
+  - System-[2.2,3.0)
+  - CustomApp-[1.0,2.0)
+
+seedDataPath: seed-data/entities.yaml

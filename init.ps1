@@ -92,8 +92,8 @@ foreach ($file in $files) {
 }
 
 # Fix: CustomApp -> {Name}App was too aggressive for some cases
-# In .html, .json, .md, .ts files revert {Name}App back to {Name}
-$fixExtensions = @('.html', '.json', '.md', '.ts')
+# In .html, .json, .md, .ts, .yaml, .yml, .csproj files revert {Name}App back to {Name}
+$fixExtensions = @('.html', '.json', '.md', '.ts', '.yaml', '.yml', '.csproj')
 $fixFiles = $files | Where-Object { $_.Extension -in $fixExtensions }
 
 foreach ($file in $fixFiles) {
@@ -125,6 +125,19 @@ if (Test-Path $customAppDir) {
 if (Test-Path $chartsDir) {
     Rename-Item -Path $chartsDir -NewName $KebabCase
     Write-Host "  src/charts/custom-app/ -> src/charts/$KebabCase/"
+}
+
+$ckModelDir = Join-Path $ScriptDir "src" "CustomAppCkModel"
+if (Test-Path $ckModelDir) {
+    Rename-Item -Path (Join-Path $ckModelDir "CustomAppCkModel.csproj") -NewName "${AppName}CkModel.csproj"
+    Rename-Item -Path $ckModelDir -NewName "${AppName}CkModel"
+    Write-Host "  src/CustomAppCkModel/ -> src/${AppName}CkModel/"
+}
+
+$blueprintDir = Join-Path $ScriptDir "src" "blueprints" "CustomApp"
+if (Test-Path $blueprintDir) {
+    Rename-Item -Path $blueprintDir -NewName $AppName
+    Write-Host "  src/blueprints/CustomApp/ -> src/blueprints/$AppName/"
 }
 
 # --- 5. Language configuration ---
@@ -213,12 +226,6 @@ $slnFile = Join-Path $ScriptDir "Octo.Template.sln"
 if (Test-Path $slnFile) {
     Remove-Item $slnFile
     Write-Host "  Removed Octo.Template.sln"
-}
-
-$buildProps = Join-Path $ScriptDir "Directory.Build.props"
-if (Test-Path $buildProps) {
-    Remove-Item $buildProps
-    Write-Host "  Removed Directory.Build.props"
 }
 
 # --- 8. Self-destruct ---

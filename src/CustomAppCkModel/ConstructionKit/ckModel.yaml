@@ -1,0 +1,4 @@
+$schema: https://schemas.meshmakers.cloud/construction-kit-meta.schema.json
+modelId: CustomApp-1.0.0
+dependencies:
+  - System-[2.2,3.0)

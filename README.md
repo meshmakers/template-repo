@@ -78,13 +78,50 @@ npm run build   # Production build
 │   │   ├── src/app/          — Application code
 │   │   ├── Dockerfile        — nginx production image
 │   │   └── package.json
-│   └── charts/custom-app/    — Helm charts for Kubernetes
+│   ├── charts/custom-app/    — Helm charts for Kubernetes
+│   ├── CustomAppCkModel/     — Example Construction Kit model (ConstructionKit/ + .csproj)
+│   └── blueprints/CustomApp/ — Example blueprint seeding the CK model
 ├── scripts/                  — Tenant management scripts
 ├── data/                     — Runtime import data
 ├── devops-build/             — Azure DevOps CI/CD pipeline
 ├── CLAUDE.md                 — AI assistant instructions
 └── init.sh                   — Project initialization script
 ```
+
+## Construction Kit & Blueprints
+
+The template ships an example Construction Kit model (`src/CustomAppCkModel/ConstructionKit`)
+and an example blueprint (`src/blueprints/CustomApp`) that seeds one entity of it.
+Replace both with your own model and seed data.
+
+Build the model locally (compiles it and publishes it to your local catalog):
+
+```bash
+dotnet build src/CustomAppCkModel/CustomAppCkModel.csproj
+```
+
+### Publishing
+
+Construction Kit models and blueprints are published **only** by the shared steps of
+[octo-pipeline-templates](https://github.com/meshmakers/octo-pipeline-templates):
+`validate-ck-versions.yml` and `validate-blueprints.yml`. Each step validates the
+version and the schema, then publishes. A validation failure blocks the publish.
+
+| | main | `r*` tag | other branches |
+|---|---|---|---|
+| CK models | private catalog | private **and** public catalog | validate only |
+| Blueprints | private catalog | private **and** public catalog | validate only |
+
+- The catalogs come from the shared `update-build-number.yml`. Never declare them in this repo.
+- Published versions are never overwritten. An already published version is skipped.
+  Bump `modelId` in `ckModel.yaml` / `blueprintId` in `blueprint.yaml` whenever their content changes.
+- List CK models and blueprints in dependency order. CK models come before blueprints.
+- Do not publish from `dotnet build` in CI. If a pipeline step builds the CK project,
+  pass `/p:OctoPublishCkModel=false`.
+
+The `catalogs` job in `devops-build/azure-pipelines.yml` is commented out in the template,
+so the example is never published. Uncomment it after `./init.sh`, once the model and
+the blueprint are your own.
 
 ## Docker
 
