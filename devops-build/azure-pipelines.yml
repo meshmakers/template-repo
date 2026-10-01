@@ -17,7 +17,7 @@ resources:
       type: github
       name: meshmakers/octo-pipeline-templates
       endpoint: meshmakers-access-token
-      ref: refs/tags/tpl-v0.7.0
+      ref: refs/tags/tpl-v1.0.0
 
 variables:
   - group: GitSSHGroup
@@ -103,12 +103,12 @@ stages:
       #     - template: templates/steps/update-build-number.yml@pipelineTemplates
       #     - checkout: self
       #       clean: true
-      #     - template: templates/steps/validate-ck-versions.yml@pipelineTemplates
+      #     - template: templates/steps/validate-and-publish-ck-versions.yml@pipelineTemplates
       #       parameters:
       #         constructionKitPaths:
       #           - 'src/CustomAppCkModel/ConstructionKit'
       #         toolVersion: '$(OctoReleaseVersion)'
-      #     - template: templates/steps/validate-blueprints.yml@pipelineTemplates
+      #     - template: templates/steps/validate-and-publish-blueprints.yml@pipelineTemplates
       #       parameters:
       #         blueprintPaths:
       #           - 'src/blueprints/CustomApp'

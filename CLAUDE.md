@@ -146,8 +146,8 @@ Edit `src/app/services/my-command-settings.service.ts` to add/modify navigation 
 ### Construction Kit & Blueprints
 - CK model sources: `src/CustomAppCkModel/ConstructionKit/` (`ckModel.yaml`, `types/`, `attributes/`, `enums/`)
 - Blueprints: `src/blueprints/<Name>/` (`blueprint.yaml` + `seed-data/`)
-- Validation and publishing come ONLY from the shared steps `templates/steps/validate-ck-versions.yml` and
-  `templates/steps/validate-blueprints.yml` of `octo-pipeline-templates` (job `catalogs` in `devops-build/azure-pipelines.yml`,
+- Validation and publishing come ONLY from the shared steps `templates/steps/validate-and-publish-ck-versions.yml` and
+  `templates/steps/validate-and-publish-blueprints.yml` of `octo-pipeline-templates` (job `catalogs` in `devops-build/azure-pipelines.yml`,
   commented out in the template). No repo-local publish scripts, no catalog names in this repo.
 - Published versions are immutable: bump `modelId` / `blueprintId` whenever the content changes
 - Never publish CK models from `dotnet build` in CI — pass `/p:OctoPublishCkModel=false` if a step builds the csproj

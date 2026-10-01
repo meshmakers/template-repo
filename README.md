@@ -104,7 +104,7 @@ dotnet build src/CustomAppCkModel/CustomAppCkModel.csproj
 
 Construction Kit models and blueprints are published **only** by the shared steps of
 [octo-pipeline-templates](https://github.com/meshmakers/octo-pipeline-templates):
-`validate-ck-versions.yml` and `validate-blueprints.yml`. Each step validates the
+`validate-and-publish-ck-versions.yml` and `validate-and-publish-blueprints.yml`. Each step validates the
 version and the schema, then publishes. A validation failure blocks the publish.
 
 | | main | `r*` tag | other branches |
