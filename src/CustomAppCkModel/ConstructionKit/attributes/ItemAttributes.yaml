@@ -1,0 +1,12 @@
+$schema: https://schemas.meshmakers.cloud/construction-kit-elements.schema.json
+attributes:
+  - id: ItemCode
+    valueType: String
+    description: "Unique, human-readable code of an item"
+  - id: ItemQuantity
+    valueType: Double
+    description: "Quantity of an item in stock"
+  - id: ItemStatus
+    valueType: Enum
+    valueCkEnumId: ${this}/ItemStatus
+    description: "Lifecycle state of an item"

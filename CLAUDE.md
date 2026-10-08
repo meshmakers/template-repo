@@ -15,6 +15,7 @@ After cloning, run `./init.sh` to customize the template for your project.
 - **Styling**: Tailwind CSS 4 + Kendo Default Theme
 - **i18n**: `@ngx-translate/core` with JSON translation files
 - **Deployment**: nginx Docker container, Helm charts for Kubernetes
+- **Construction Kit & Blueprints**: example CK model at `src/CustomAppCkModel/`, example blueprint at `src/blueprints/CustomApp/`
 
 ## Tech Stack
 
@@ -141,6 +142,15 @@ Edit `src/app/services/my-command-settings.service.ts` to add/modify navigation 
 - Translation files in `src/assets/i18n/{lang}.json`
 - Use `translate` pipe in templates: `{{ 'APP.TITLE' | translate }}`
 - Add new languages: create JSON file + add to `config.json` supportedLanguages + add flag to `styles.scss`
+
+### Construction Kit & Blueprints
+- CK model sources: `src/CustomAppCkModel/ConstructionKit/` (`ckModel.yaml`, `types/`, `attributes/`, `enums/`)
+- Blueprints: `src/blueprints/<Name>/` (`blueprint.yaml` + `seed-data/`)
+- Validation and publishing come ONLY from the shared steps `templates/steps/validate-and-publish-ck-versions.yml` and
+  `templates/steps/validate-and-publish-blueprints.yml` of `octo-pipeline-templates` (job `catalogs` in `devops-build/azure-pipelines.yml`,
+  commented out in the template). No repo-local publish scripts, no catalog names in this repo.
+- Published versions are immutable: bump `modelId` / `blueprintId` whenever the content changes
+- Never publish CK models from `dotnet build` in CI — pass `/p:OctoPublishCkModel=false` if a step builds the csproj
 
 ## Project Structure
 

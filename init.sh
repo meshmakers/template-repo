@@ -89,7 +89,7 @@ find "$SCRIPT_DIR" -type f \
 
 # Fix: CustomApp -> {Name}App was too aggressive for some cases
 # The app.html title, index.html title, etc. should just be {AppName}
-find "$SCRIPT_DIR" -type f -name '*.html' -o -name '*.json' -o -name '*.md' -o -name '*.ts' | while read -r file; do
+find "$SCRIPT_DIR" -type f -name '*.html' -o -name '*.json' -o -name '*.md' -o -name '*.ts' -o -name '*.yaml' -o -name '*.yml' -o -name '*.csproj' | while read -r file; do
   if [ -f "$file" ]; then
     sed -i '' "s/${APP_NAME}App/${APP_NAME}/g" "$file" 2>/dev/null || true
   fi
@@ -107,6 +107,17 @@ fi
 if [ -d "$SCRIPT_DIR/src/charts/custom-app" ]; then
   mv "$SCRIPT_DIR/src/charts/custom-app" "$SCRIPT_DIR/src/charts/${KEBAB_CASE}"
   echo "  src/charts/custom-app/ -> src/charts/${KEBAB_CASE}/"
+fi
+
+if [ -d "$SCRIPT_DIR/src/CustomAppCkModel" ]; then
+  mv "$SCRIPT_DIR/src/CustomAppCkModel/CustomAppCkModel.csproj" "$SCRIPT_DIR/src/CustomAppCkModel/${APP_NAME}CkModel.csproj"
+  mv "$SCRIPT_DIR/src/CustomAppCkModel" "$SCRIPT_DIR/src/${APP_NAME}CkModel"
+  echo "  src/CustomAppCkModel/ -> src/${APP_NAME}CkModel/"
+fi
+
+if [ -d "$SCRIPT_DIR/src/blueprints/CustomApp" ]; then
+  mv "$SCRIPT_DIR/src/blueprints/CustomApp" "$SCRIPT_DIR/src/blueprints/${APP_NAME}"
+  echo "  src/blueprints/CustomApp/ -> src/blueprints/${APP_NAME}/"
 fi
 
 # --- 5. Language configuration ---
@@ -225,12 +236,6 @@ echo -e "${GREEN}[5/6] Cleaning up .NET artifacts...${NC}"
 if [ -f "$SCRIPT_DIR/Octo.Template.sln" ]; then
   rm "$SCRIPT_DIR/Octo.Template.sln"
   echo "  Removed Octo.Template.sln"
-fi
-
-# Remove Directory.Build.props (not needed for frontend-only)
-if [ -f "$SCRIPT_DIR/Directory.Build.props" ]; then
-  rm "$SCRIPT_DIR/Directory.Build.props"
-  echo "  Removed Directory.Build.props"
 fi
 
 # --- 8. Self-destruct ---

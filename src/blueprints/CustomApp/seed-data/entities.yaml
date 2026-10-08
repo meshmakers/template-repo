@@ -1,0 +1,18 @@
+$schema: https://schemas.meshmakers.cloud/runtime-model.schema.json
+dependencies:
+  - System-[2.2,3.0)
+  - CustomApp-[1.0,2.0)
+
+entities:
+  - rtId: 6a0000000000000000000001
+    ckTypeId: CustomApp/Item-1
+    associations: []
+    attributes:
+      - id: System/Name-1
+        value: Example Item
+      - id: CustomApp/ItemCode-1
+        value: ITEM-0001
+      - id: CustomApp/ItemQuantity-1
+        value: 1
+      - id: CustomApp/ItemStatus-1
+        value: 1
