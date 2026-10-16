@@ -32,6 +32,8 @@ $KebabCase = ($AppName -creplace '([A-Z])', '-$1').TrimStart('-').ToLower()
 $SnakeCase = $KebabCase -replace '-', '_'
 # lowercase: AcmeProject -> acmeproject
 $Lowercase = $AppName.ToLower()
+# camelCase: AcmeProject -> acmeProject (GraphQL field names, for example customAppItem -> acmeItem)
+$CamelCase = $AppName.Substring(0, 1).ToLower() + $AppName.Substring(1)
 
 Write-Host "Configuration:" -ForegroundColor Yellow
 Write-Host "  App Name (PascalCase): $AppName"
@@ -78,7 +80,9 @@ foreach ($file in $files) {
         $original = $content
 
         # Order matters: longest match first
-        $content = $content -replace 'CustomApp', "${AppName}App"
+        # -creplace: case sensitive, so that customApp (GraphQL fields) and CustomApp (types) differ
+        $content = $content -creplace 'customApp', $CamelCase
+        $content = $content -creplace 'CustomApp', "${AppName}App"
         $content = $content -replace 'custom-app', $KebabCase
         $content = $content -replace 'custom_app', $SnakeCase
 

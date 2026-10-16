@@ -1,0 +1,14 @@
+query GetItems($first: Int!) {
+  runtime {
+    customAppItem(first: $first) {
+      totalCount
+      items {
+        rtId
+        name
+        code
+        quantity
+        status
+      }
+    }
+  }
+}

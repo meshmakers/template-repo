@@ -55,11 +55,13 @@ Run the scripts from the `scripts` folder while octo-cli is logged in to your st
 ```bash
 cd scripts
 pwsh om_setupIdentityService_local.ps1  # register the OIDC client of the dev server (once)
-pwsh om_initialize_tenant.ps1            # create the tenant, import the Basic Construction Kit and the sample data
+pwsh om_initialize_tenant.ps1            # create the tenant, import the Construction Kits and the sample item
 pwsh generate-dev-certs.ps1              # certificate for the https dev server on port 4300
 ```
 
-`om_initialize_tenant.ps1` first **deletes** the tenant of the app if it exists, so use it only for a fresh
+`om_initialize_tenant.ps1` imports the public Basic Construction Kit, compiles and imports the own model of the
+app (`src/<App>CkModel`, needs `octo-ckc`, see [Start creating libraries](https://docs.meshmakers.cloud/docs/technologyGuide/constructionKits/createConstructionKitLibrary#install-the-compiler))
+and the sample data of the blueprint (`src/blueprints/<App>/seed-data/entities.yaml`, one item). It first **deletes** the tenant of the app if it exists, so use it only for a fresh
 tenant. The tenant id is the kebab-case name of your app (`custom-app` in the template).
 
 ### 2. Configure
@@ -102,6 +104,14 @@ npm run lint    # Check code quality
 npm test        # Run unit tests
 npm run build   # Production build
 ```
+### 4. What you see
+
+After sign-in the home page shows the **items** of your tenant as a table (name, code, quantity, status). With the
+sample data you see one row, `Example Item` (`ITEM-0001`, quantity 1, status Active). While the data loads the page
+says so, a tenant without items shows a hint to import the sample data, and a failed query shows an error with a
+**Retry** button. The query is `src/<app>/src/app/graphQL/getItems.graphql`; after you change it or the model,
+regenerate the types with `npm run codegen` (needs `schema.graphql`, the GraphQL schema of your tenant).
+
 <!-- TODO(verify): the complete run on the getting-started stack (init.sh, the three scripts, npm start, sign-in, tenant data), AB#6775 window -->
 
 ## Project Structure
@@ -117,7 +127,6 @@ npm run build   # Production build
 │   ├── CustomAppCkModel/     — Example Construction Kit model (ConstructionKit/ + .csproj)
 │   └── blueprints/CustomApp/ — Example blueprint seeding the CK model
 ├── scripts/                  — Tenant management scripts
-├── data/                     — Sample runtime data (queries)
 ├── devops-build/             — Azure DevOps CI/CD pipeline
 ├── CLAUDE.md                 — AI assistant instructions
 └── init.sh                   — Project initialization script

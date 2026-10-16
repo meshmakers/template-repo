@@ -1,22 +1,37 @@
 <div class="p-6">
-  <h1 class="text-2xl font-semibold mb-4">Welcome to CustomApp</h1>
-  <p class="text-base leading-relaxed">
-    This is the home page of your OctoMesh Custom App. Use the drawer
-    navigation on the left to explore the available pages.
+  <h1 class="text-2xl font-semibold mb-4">{{ 'APP.WELCOME' | translate }}</h1>
+  <p class="text-base leading-relaxed mb-6">
+    {{ 'HOME.INTRO' | translate }}
   </p>
-  <div class="mt-6 p-4 rounded-lg border border-gray-200">
-    <h2 class="text-lg font-medium mb-2">Getting Started</h2>
-    <ul class="list-disc list-inside space-y-1">
-      <li>Add new pages in <code>src/app/pages/</code></li>
-      <li>
-        Define navigation items in
-        <code>services/my-command-settings.service.ts</code>
-      </li>
-      <li>Add routes in <code>app.routes.ts</code></li>
-      <li>
-        Use GraphQL codegen for type-safe API queries in
-        <code>src/app/graphQL/</code>
-      </li>
-    </ul>
-  </div>
+
+  <h2 class="text-lg font-medium mb-2">{{ 'HOME.ITEMS_TITLE' | translate }}</h2>
+
+  @switch (state()) {
+    @case ('loading') {
+      <p role="status">{{ 'COMMON.LOADING' | translate }}</p>
+    }
+    @case ('error') {
+      <div role="alert">
+        <p class="mb-2">{{ 'HOME.ITEMS_ERROR' | translate }}</p>
+        <button kendoButton type="button" (click)="load()">
+          {{ 'COMMON.RETRY' | translate }}
+        </button>
+      </div>
+    }
+    @case ('empty') {
+      <p>{{ 'HOME.ITEMS_EMPTY' | translate }}</p>
+    }
+    @default {
+      <kendo-grid [data]="rows()" [style.maxHeight.px]="480">
+        <kendo-grid-column field="name" [title]="'HOME.COLUMN_NAME' | translate" />
+        <kendo-grid-column field="code" [title]="'HOME.COLUMN_CODE' | translate" />
+        <kendo-grid-column
+          field="quantity"
+          [title]="'HOME.COLUMN_QUANTITY' | translate"
+          format="n0"
+        />
+        <kendo-grid-column field="status" [title]="'HOME.COLUMN_STATUS' | translate" />
+      </kendo-grid>
+    }
+  }
 </div>

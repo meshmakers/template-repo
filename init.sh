@@ -45,6 +45,8 @@ KEBAB_CASE=$(echo "$APP_NAME" | sed 's/\([A-Z]\)/-\1/g' | sed 's/^-//' | tr '[:u
 SNAKE_CASE=$(echo "$KEBAB_CASE" | tr '-' '_')
 # lowercase: AcmeProject -> acmeproject
 LOWERCASE=$(echo "$APP_NAME" | tr '[:upper:]' '[:lower:]')
+# camelCase: AcmeProject -> acmeProject (GraphQL field names, for example customAppItem -> acmeItem)
+CAMEL_CASE="$(echo "${APP_NAME:0:1}" | tr '[:upper:]' '[:lower:]')${APP_NAME:1}"
 
 echo -e "${YELLOW}Configuration:${NC}"
 echo "  App Name (PascalCase): $APP_NAME"
@@ -85,6 +87,7 @@ find "$SCRIPT_DIR" -type f \
     if grep -Iq . "$file" 2>/dev/null; then
       # Order matters: longest match first
       sedi \
+        -e "s/customApp/${CAMEL_CASE}/g" \
         -e "s/CustomApp/${APP_NAME}App/g" \
         -e "s/custom-app/${KEBAB_CASE}/g" \
         -e "s/custom_app/${SNAKE_CASE}/g" \
