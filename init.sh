@@ -1,6 +1,11 @@
 #!/bin/bash
 set -e
 
+# Portable in-place sed: GNU sed (Linux, Git Bash) takes -i without a suffix argument, BSD sed (macOS) needs ''.
+sedi() {
+  if sed --version >/dev/null 2>&1; then sed -i "$@"; else sed -i '' "$@"; fi
+}
+
 # Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -77,9 +82,9 @@ find "$SCRIPT_DIR" -type f \
   -not -name '*.woff' \
   -not -name '*.woff2' \
   | while read -r file; do
-    if file "$file" | grep -q text; then
+    if grep -Iq . "$file" 2>/dev/null; then
       # Order matters: longest match first
-      sed -i '' \
+      sedi \
         -e "s/CustomApp/${APP_NAME}App/g" \
         -e "s/custom-app/${KEBAB_CASE}/g" \
         -e "s/custom_app/${SNAKE_CASE}/g" \
@@ -91,7 +96,7 @@ find "$SCRIPT_DIR" -type f \
 # The app.html title, index.html title, etc. should just be {AppName}
 find "$SCRIPT_DIR" -type f -name '*.html' -o -name '*.json' -o -name '*.md' -o -name '*.ts' -o -name '*.yaml' -o -name '*.yml' -o -name '*.csproj' | while read -r file; do
   if [ -f "$file" ]; then
-    sed -i '' "s/${APP_NAME}App/${APP_NAME}/g" "$file" 2>/dev/null || true
+    sedi "s/${APP_NAME}App/${APP_NAME}/g" "$file" 2>/dev/null || true
   fi
 done
 
@@ -128,7 +133,7 @@ FRONTEND_DIR="$SCRIPT_DIR/src/${KEBAB_CASE}"
 
 # Update default language in config.json
 if [ "$DEFAULT_LANG" != "en-GB" ]; then
-  sed -i '' "s/\"defaultLanguage\": \"en-GB\"/\"defaultLanguage\": \"$DEFAULT_LANG\"/" "$FRONTEND_DIR/src/assets/config.json"
+  sedi "s/\"defaultLanguage\": \"en-GB\"/\"defaultLanguage\": \"$DEFAULT_LANG\"/" "$FRONTEND_DIR/src/assets/config.json"
 fi
 
 # Build supported languages array
@@ -219,7 +224,7 @@ fi
 # Update flag-icons in styles.scss
 SCSS_FLAGS=$(echo "$FLAG_LIST" | tr ' ' '\n' | sed 's/^/    /' | paste -sd ',' - | sed 's/,/,\n/g')
 # Simple replacement of the flag list
-sed -i '' "s/  \$fi-country-list: (/  \$fi-country-list: (/" "$FRONTEND_DIR/src/styles.scss" 2>/dev/null || true
+sedi "s/  \$fi-country-list: (/  \$fi-country-list: (/" "$FRONTEND_DIR/src/styles.scss" 2>/dev/null || true
 
 # --- 6. Update CK import script path ---
 

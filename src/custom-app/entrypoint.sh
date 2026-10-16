@@ -1,31 +1,37 @@
 #!/bin/sh
 # Runtime configuration injection
-# Environment variables override the static config.json at container startup
+# Environment variables override the static config.json at container startup, so the same image
+# can be pointed at any OctoMesh installation without a rebuild.
+#
+#   CONFIG_TENANT_ID, CONFIG_API_URL, CONFIG_AUTHORITY_URL, CONFIG_ASSET_SERVICES_URL,
+#   CONFIG_CLIENT_ID, CONFIG_SCOPE
+#
+# config.json keeps one key per line ("key": value,), which this script relies on.
 
-CONFIG_FILE="/usr/share/nginx/html/assets/config.json"
+CONFIG_FILE="${CONFIG_FILE:-/usr/share/nginx/html/assets/config.json}"
+changed=0
 
-if [ -n "$CONFIG_TENANT_ID" ] || [ -n "$CONFIG_API_URL" ] || [ -n "$CONFIG_AUTHORITY_URL" ]; then
-  echo "Injecting runtime configuration..."
+# set_config <json key> <value>: replaces the line of the key, escaping characters that are special
+# for sed (\ & |) and for JSON strings (\ "). Stops the container start if a replacement fails.
+set_config() {
+  key="$1"
+  value="$2"
+  escaped=$(printf '%s' "$value" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e 's/[\\&|]/\\&/g')
+  if ! sed -i "s|^\( *\)\"$key\":.*|\1\"$key\": \"$escaped\",|" "$CONFIG_FILE"; then
+    echo "Failed to set '$key' in $CONFIG_FILE" >&2
+    exit 1
+  fi
+  changed=1
+}
 
-  # Use sed to replace values in config.json from environment variables
-  if [ -n "$CONFIG_TENANT_ID" ]; then
-    sed -i "s|\"tenantId\":.*|\"tenantId\": \"$CONFIG_TENANT_ID\",|" "$CONFIG_FILE"
-  fi
-  if [ -n "$CONFIG_API_URL" ]; then
-    sed -i "s|\"apiUrl\":.*|\"apiUrl\": \"$CONFIG_API_URL\",|" "$CONFIG_FILE"
-  fi
-  if [ -n "$CONFIG_AUTHORITY_URL" ]; then
-    sed -i "s|\"authorityUrl\":.*|\"authorityUrl\": \"$CONFIG_AUTHORITY_URL\",|" "$CONFIG_FILE"
-  fi
-  if [ -n "$CONFIG_ASSET_SERVICES_URL" ]; then
-    sed -i "s|\"assetServicesUrl\":.*|\"assetServicesUrl\": \"$CONFIG_ASSET_SERVICES_URL\",|" "$CONFIG_FILE"
-  fi
-  if [ -n "$CONFIG_CLIENT_ID" ]; then
-    sed -i "s|\"clientId\":.*|\"clientId\": \"$CONFIG_CLIENT_ID\",|" "$CONFIG_FILE"
-  fi
-  if [ -n "$CONFIG_SCOPE" ]; then
-    sed -i "s|\"scope\":.*|\"scope\": \"$CONFIG_SCOPE\",|" "$CONFIG_FILE"
-  fi
+[ -n "$CONFIG_TENANT_ID" ] && set_config tenantId "$CONFIG_TENANT_ID"
+[ -n "$CONFIG_API_URL" ] && set_config apiUrl "$CONFIG_API_URL"
+[ -n "$CONFIG_AUTHORITY_URL" ] && set_config authorityUrl "$CONFIG_AUTHORITY_URL"
+[ -n "$CONFIG_ASSET_SERVICES_URL" ] && set_config assetServicesUrl "$CONFIG_ASSET_SERVICES_URL"
+[ -n "$CONFIG_CLIENT_ID" ] && set_config clientId "$CONFIG_CLIENT_ID"
+[ -n "$CONFIG_SCOPE" ] && set_config scope "$CONFIG_SCOPE"
 
-  echo "Configuration injected successfully."
+if [ "$changed" = "1" ]; then
+  echo "Runtime configuration injected into $CONFIG_FILE"
 fi
+exit 0

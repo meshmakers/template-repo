@@ -185,3 +185,13 @@ cd scripts && pwsh om_initialize_tenant.ps1
 # Register OIDC client for local development
 cd scripts && pwsh om_setupIdentityService_local.ps1
 ```
+
+## Dependency pins
+
+- Angular, Kendo UI and the other npm packages are pinned to exact versions in `src/custom-app/package.json`;
+  the `@meshmakers/*` libraries are declared as `*` and resolved by `package-lock.json` to the published
+  versions on the public npm registry. The Docker build can rewrite them to one version (build argument
+  `OCTO_LIB_VERSION`).
+- Dependabot (`.github/dependabot.yml`) proposes npm and Docker updates weekly; a maintainer of this
+  repository reviews and merges them. Keep the lockfile and the Angular major in step with the published
+  `@meshmakers/*` libraries, whose peer dependency decides the Angular major.
