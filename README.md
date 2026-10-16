@@ -36,11 +36,13 @@ See **Local Development** below for the tenant, the configuration and the Teleri
 - **octo-cli 3.5.0 or newer**, logged in to that stack (`om-login-local.ps1` of getting-started does this)
 - **PowerShell 7.4+** for the `scripts/om_*.ps1` helpers
 - **A Telerik licence for Kendo UI for Angular.** The app uses Kendo UI, a commercial component library, and
-  `npm start` and `npm run build:prod` stop without a licence. We do not provide a key: get your own licence key
-  (a free trial is available) from your [Telerik account](https://www.telerik.com/account/your-products) and see
-  the [Telerik licensing documentation](https://www.telerik.com/kendo-angular-ui/components/my-license/) for
-  how to download it. Set the licence text in the environment variable `TELERIK_LICENSE` of your shell before
-  you start or build the app; the build then activates it. Never commit the key.
+  `npm start` and `npm run build:prod` stop without a licence. We do not provide a key. Telerik offers a
+  [free 30-day trial](https://www.telerik.com/try/kendo-angular-ui) (no credit card needed); with a trial or a
+  purchased licence you download your licence key on the
+  [License Keys page](https://www.telerik.com/account/your-licenses/license-keys) of your Telerik account (see
+  the [Telerik licensing documentation](https://www.telerik.com/kendo-angular-ui/components/my-license/)). Set the
+  licence text in the environment variable `TELERIK_LICENSE` of your shell before you start or build the app; the
+  build then activates it. Never commit the key.
 
 No Duende or AutoMapper licence is needed with OctoMesh 3.5.23 or newer.
 
