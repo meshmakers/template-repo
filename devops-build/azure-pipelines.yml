@@ -32,7 +32,11 @@ variables:
   - name: OctoLibVersion
     value: 'beta' # overridden at runtime by update-build-number.yml (beta/test/latest)
   - name: OctoReleaseVersion
-    value: '3.4.*' # octo-ckc / octo-bpm tool line for the catalog steps, same line as Directory.Build.props
+    # octo-ckc / octo-bpm tool for the catalog steps (AB#6888). Floats to the highest stable 3.x release, so the
+    # next release line (3.6, 3.7, ...) needs no edit here. Floor: 3.5.23 - range retention is the default from
+    # there on; an older tool (3.4.*) publishes exact-pinned, immutable catalog entries. Only a new MAJOR (4.x)
+    # needs this value changed.
+    value: '3.*'
 
 stages:
   - stage: Build
