@@ -50,19 +50,25 @@ No Duende or AutoMapper licence is needed with OctoMesh 3.5.23 or newer.
 
 ### 1. Set up the tenant
 
-Run the scripts from the `scripts` folder while octo-cli is logged in to your stack:
+Log in with octo-cli as an administrator of the **system tenant** (`octosystem`), because the scripts create the
+tenant below it; `Config` and `LogIn` do this for the context of the stack (see its README). Then run the scripts
+from the `scripts` folder:
 
 ```bash
 cd scripts
-pwsh om_setupIdentityService_local.ps1  # register the OIDC client of the dev server (once)
 pwsh om_initialize_tenant.ps1            # create the tenant, import the Construction Kits and the sample item
+pwsh om_setupIdentityService_local.ps1  # register the OIDC client of the dev server in the new tenant
 pwsh generate-dev-certs.ps1              # certificate for the https dev server on port 4300
 ```
 
-`om_initialize_tenant.ps1` imports the public Basic Construction Kit, compiles and imports the own model of the
-app (`src/<App>CkModel`, needs `octo-ckc`, see [Start creating libraries](https://docs.meshmakers.cloud/docs/technologyGuide/constructionKits/createConstructionKitLibrary#install-the-compiler))
-and the sample data of the blueprint (`src/blueprints/<App>/seed-data/entities.yaml`, one item). It first **deletes** the tenant of the app if it exists, so use it only for a fresh
-tenant. The tenant id is the kebab-case name of your app (`custom-app` in the template).
+All scripts take `-TenantId` (default: the kebab-case name of your app, `custom-app` in the template).
+`om_initialize_tenant.ps1` first **deletes** the tenant if it exists (deleting finishes in the background and can
+take a minute or two, the script waits), creates it, provisions your user as its admin, enables communication and
+stream data, imports the public Basic Construction Kit, compiles and imports the own model of the app
+(`src/<App>CkModel`, needs `octo-ckc`, see [Start creating libraries](https://docs.meshmakers.cloud/docs/technologyGuide/constructionKits/createConstructionKitLibrary#install-the-compiler))
+and the sample data of the blueprint (`src/blueprints/<App>/seed-data/entities.yaml`, one item). Run
+`om_setupIdentityService_local.ps1` **after** it: the client belongs to the tenant, so initializing the tenant
+again deletes it.
 
 ### 2. Configure
 
