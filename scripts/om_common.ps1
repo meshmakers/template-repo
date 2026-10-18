@@ -18,6 +18,7 @@ function Set-OctoCliTenant {
     param([Parameter(Mandatory)][string]$TenantId)
     # octo-cli prints a banner before the JSON list, only keep the output from the opening '[' onward.
     $lines = octo-cli -c ListContexts -j
+    if ($LASTEXITCODE -ne 0) { throw "octo-cli ListContexts failed (exit code $LASTEXITCODE): $($lines -join ' ')" }
     $start = ($lines | Select-String -Pattern '^\s*\[' | Select-Object -First 1).LineNumber
     if (-not $start) { throw "Could not read the octo-cli contexts. Log in first (octo-cli -c LogIn -i)." }
     $context = (($lines | Select-Object -Skip ($start - 1)) -join "`n" | ConvertFrom-Json) |

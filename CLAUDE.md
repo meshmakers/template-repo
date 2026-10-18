@@ -193,5 +193,5 @@ cd scripts && pwsh om_setupIdentityService_local.ps1
   versions on the public npm registry. The Docker build can rewrite them to one version (build argument
   `OCTO_LIB_VERSION`).
 - Dependabot (`.github/dependabot.yml`) proposes npm and Docker updates weekly; a maintainer of this
-  repository reviews and merges them. The owner of this task is still to be determined. Keep the lockfile and the Angular major in step with the published
+  repository reviews and merges them. Keep the lockfile and the Angular major in step with the published
   `@meshmakers/*` libraries, whose peer dependency decides the Angular major.
