@@ -57,6 +57,11 @@ async function initServices(): Promise<void> {
   defaultAuthorizeOptions.issuer = clientConfig.issuer;
   defaultAuthorizeOptions.clientId = clientConfig.clientId;
   defaultAuthorizeOptions.scope = clientConfig.scope;
+  // The authorize interceptor sends the access token only to these service URIs (prefix match).
+  defaultAuthorizeOptions.wellKnownServiceUris = [
+    clientConfig.apiServices,
+    clientConfig.assetServices,
+  ].filter((uri, index, all) => !!uri && all.indexOf(uri) === index);
 
   defaultOctoServiceOptions.assetServices = clientConfig.assetServices;
 
