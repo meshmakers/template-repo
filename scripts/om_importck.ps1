@@ -1,4 +1,5 @@
 param (
+    [string]$TenantId = "custom-app",
     # Version of the public Basic Construction Kit to import
     [string]$basicVersion = "2.5.0"
 )
@@ -7,8 +8,9 @@ param (
 # log in with octo-cli first and select the tenant):
 #   1. the public Basic Construction Kit from the public catalog,
 #   2. the own model of the app (src/<App>CkModel/ConstructionKit), compiled with octo-ckc.
-$ErrorActionPreference = "Stop"
+. "$PSScriptRoot/om_common.ps1"
 $repoRoot = Split-Path -Parent $PSScriptRoot
+Set-OctoCliTenant -TenantId $TenantId
 
 octo-cli -c ImportFromCatalog -cn PublicGitHubCatalog -m "Basic-$basicVersion" -w
 if ($LASTEXITCODE -ne 0) { throw "Importing the Basic Construction Kit failed." }
