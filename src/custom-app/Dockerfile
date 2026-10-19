@@ -7,16 +7,19 @@ FROM --platform=$BUILDPLATFORM meshmakers/dotnet_sdk-node:1.3.0.0 AS build
 ARG TELERIK_LICENSE
 ENV TELERIK_LICENSE=${TELERIK_LICENSE}
 
-ARG OCTO_LIB_VERSION=0.1.0
+# dist-tag or version of the @meshmakers libraries on the public npm registry (all libraries are released together)
+ARG OCTO_LIB_VERSION=latest
 ARG NPM_PRIVATE_URI
-ARG OCTO_PRIVATE_NUGET_CERTIFICATE
+# Path of a CA certificate for a private npm registry, relative to the build context; the default is a
+# placeholder without certificate (a COPY from /dev/null fails in BuildKit).
+ARG OCTO_PRIVATE_NUGET_CERTIFICATE=src/custom-app/no-extra-ca.crt
 
 WORKDIR /src/src/custom-app
 
 COPY src/custom-app/package*.json ./
 
 # Copy CA certificate for private npm registry (if provided)
-COPY ${OCTO_PRIVATE_NUGET_CERTIFICATE:-/dev/null} /tmp/mm-ca.crt
+COPY ${OCTO_PRIVATE_NUGET_CERTIFICATE} /tmp/mm-ca.crt
 ENV NODE_EXTRA_CA_CERTS=/tmp/mm-ca.crt
 
 # Configure private registry, resolve dist-tag to exact version, replace file: references

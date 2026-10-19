@@ -29,7 +29,8 @@
     "UNSAVED_CHANGES_YES": "Yes",
     "UNSAVED_CHANGES_NO": "No",
     "MODIFIED": "MODIFIED",
-    "READY": "READY"
+    "READY": "READY",
+    "RETRY": "Retry"
   },
   "LIST_VIEW": {
     "SEARCH_PLACEHOLDER": "Search in all columns...",
@@ -53,5 +54,15 @@
     "TITLE": "Maintenance Mode",
     "MESSAGE": "The application is currently undergoing maintenance and is temporarily unavailable.",
     "SUBMESSAGE": "Please try again later."
+  },
+  "HOME": {
+    "INTRO": "This is the home page of your OctoMesh Custom App. It reads the items of your tenant.",
+    "ITEMS_TITLE": "Items",
+    "ITEMS_EMPTY": "There are no items in this tenant yet. Import the sample data of the blueprint (see the README, step 'Set up the tenant') and reload.",
+    "ITEMS_ERROR": "The items could not be loaded. Check the connection and your sign-in, then try again.",
+    "COLUMN_NAME": "Name",
+    "COLUMN_CODE": "Code",
+    "COLUMN_QUANTITY": "Quantity",
+    "COLUMN_STATUS": "Status"
   }
 }

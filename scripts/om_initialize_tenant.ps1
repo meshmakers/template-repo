@@ -1,23 +1,21 @@
 param (
-    [string]$configuration = "Release"
+    [string]$TenantId = "custom-app",
+    # Version of the public Basic Construction Kit to import
+    [string]$basicVersion = "2.5.0"
 )
 
-Write-Host "=== Initializing CustomApp Tenant ===" -ForegroundColor Cyan
+Write-Host "=== Initializing the tenant '$TenantId' ===" -ForegroundColor Cyan
 
-# Step 1: Delete existing tenant (ignore errors if it doesn't exist)
-Write-Host "Deleting existing tenant..." -ForegroundColor Yellow
-& "$PSScriptRoot/om_delete_tenants.ps1"
+Write-Host "Deleting the tenant if it exists..." -ForegroundColor Yellow
+& "$PSScriptRoot/om_delete_tenants.ps1" -TenantId $TenantId
 
-# Step 2: Create tenant
-Write-Host "Creating tenant..." -ForegroundColor Yellow
-& "$PSScriptRoot/om_create_tenants.ps1"
+Write-Host "Creating the tenant..." -ForegroundColor Yellow
+& "$PSScriptRoot/om_create_tenants.ps1" -TenantId $TenantId
 
-# Step 3: Import Construction Kit
-Write-Host "Importing Construction Kit..." -ForegroundColor Yellow
-& "$PSScriptRoot/om_importck.ps1" -configuration $configuration
+Write-Host "Importing the Construction Kits..." -ForegroundColor Yellow
+& "$PSScriptRoot/om_importck.ps1" -TenantId $TenantId -basicVersion $basicVersion
 
-# Step 4: Import Runtime data
-Write-Host "Importing Runtime data..." -ForegroundColor Yellow
-& "$PSScriptRoot/om_importrt.ps1"
+Write-Host "Importing the sample data..." -ForegroundColor Yellow
+& "$PSScriptRoot/om_importrt.ps1" -TenantId $TenantId
 
 Write-Host "=== Tenant initialization complete ===" -ForegroundColor Green

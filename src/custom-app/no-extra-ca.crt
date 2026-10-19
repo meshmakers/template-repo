@@ -1,0 +1,1 @@
+# Placeholder: no extra CA certificate. The Docker build copies this file when OCTO_PRIVATE_NUGET_CERTIFICATE is not set.
