@@ -166,8 +166,11 @@ version and the schema, then publishes. A validation failure blocks the publish.
 - Published versions are never overwritten. An already published version is skipped.
   Bump `modelId` in `ckModel.yaml` / `blueprintId` in `blueprint.yaml` whenever their content changes.
 - List CK models and blueprints in dependency order. CK models come before blueprints.
-- The `octo-ckc` / `octo-bpm` tool comes from `OctoReleaseVersion` (`3.*`: the highest stable 3.x, floor 3.5.23).
-  Older tools (3.4.*) publish exact-pinned, immutable entries; do not pin the variable back to a 3.4 line.
+- The `octo-ckc` / `octo-bpm` tool comes from the shared step `resolve-octo-release-tools.yml`: the highest released
+  version (nuget.org only) of the configured major that exists for both tools. It sets `OctoReleaseToolVersion`
+  (exact, passed as `toolVersion`) and `OctoReleaseLine` (`X.Y.*`, for `/p:OctoVersion=` where an app compiles Octo
+  packages on an app r-tag). The step fails below its floor (range retention) or when nuget.org is unreachable. This
+  repo names no tool line and needs no edit for the next release line.
 - Do not publish from `dotnet build` in CI. If a pipeline step builds the CK project,
   pass `/p:OctoPublishCkModel=false`.
 
