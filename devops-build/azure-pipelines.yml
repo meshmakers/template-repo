@@ -17,7 +17,7 @@ resources:
       type: github
       name: meshmakers/octo-pipeline-templates
       endpoint: meshmakers-access-token
-      ref: refs/tags/tpl-v1.7.0
+      ref: refs/tags/tpl-v1.9.0 # planned tag of AB#7807 (resolve-octo-release-tools.yml); not set yet
 
 variables:
   - group: GitSSHGroup
@@ -31,12 +31,6 @@ variables:
     value: ${{ startsWith(variables['Build.SourceBranch'], 'refs/heads/test') }}
   - name: OctoLibVersion
     value: 'beta' # overridden at runtime by update-build-number.yml (beta/test/latest)
-  - name: OctoReleaseVersion
-    # octo-ckc / octo-bpm tool for the catalog steps (AB#6888). Floats to the highest stable 3.x release, so the
-    # next release line (3.6, 3.7, ...) needs no edit here. Floor: 3.5.23 - range retention is the default from
-    # there on; an older tool (3.4.*) publishes exact-pinned, immutable catalog entries. Only a new MAJOR (4.x)
-    # needs this value changed.
-    value: '3.*'
 
 stages:
   - stage: Build
@@ -105,15 +99,18 @@ stages:
       #     name: meshmakers-ci-agents
       #   steps:
       #     - template: templates/steps/update-build-number.yml@pipelineTemplates
+      #     # Released octo-ckc / octo-bpm from nuget.org (floor and major live in the template, AB#7807):
+      #     # sets OctoReleaseToolVersion (exact) and OctoReleaseLine (X.Y.*). No tool line is named in this repo.
+      #     - template: templates/steps/resolve-octo-release-tools.yml@pipelineTemplates
       #     - checkout: self
       #       clean: true
       #     - template: templates/steps/validate-and-publish-ck-versions.yml@pipelineTemplates
       #       parameters:
       #         constructionKitPaths:
       #           - 'src/CustomAppCkModel/ConstructionKit'
-      #         toolVersion: '$(OctoReleaseVersion)'
+      #         toolVersion: '$(OctoReleaseToolVersion)'
       #     - template: templates/steps/validate-and-publish-blueprints.yml@pipelineTemplates
       #       parameters:
       #         blueprintPaths:
       #           - 'src/blueprints/CustomApp'
-      #         toolVersion: '$(OctoReleaseVersion)'
+      #         toolVersion: '$(OctoReleaseToolVersion)'
