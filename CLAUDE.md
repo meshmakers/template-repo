@@ -28,7 +28,8 @@ files of this repository; they belong in commit messages.
 - **API**: GraphQL via Apollo Angular to OctoMesh Tenant API
 - **Styling**: design of the Meshmakers apps (Refinery Studio, Meshmakers App): Kendo Material theme
   (`@progress/kendo-theme-material`) + Octo tokens and component styles of `@meshmakers/octo-ui` (`styles/_index.scss`
-  via `stylePreprocessorOptions.includePaths`), dark by default, `data-theme="light"|"dark"` set by `ThemeService`;
+  via `stylePreprocessorOptions.includePaths`); `ThemeService` follows the OS preference until the user toggles the
+  theme (stored in localStorage) and always sets `data-theme="light"|"dark"` (the Octo token defaults alone are dark);
   Tailwind CSS 4 for layout utilities. Never add own `--kendo-color-*` values in `styles.scss`; use the `--theme-*` and
   `--octo-*` tokens.
 - **Sign-in tenant**: `applyClientConfig` passes `tenantId` of `config.json` as `defaultTenantId`, so the login sends

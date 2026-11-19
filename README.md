@@ -73,8 +73,9 @@ npm start
 See **Local Development** below for the tenant, the configuration and the Telerik licence the dev server needs.
 
 The app uses the design of the Meshmakers apps (Refinery Studio, Meshmakers App): the Kendo Material theme with the
-Octo tokens and component styles of `@meshmakers/octo-ui` (`src/<app>/src/styles.scss`), dark by default with a light
-theme from the app bar toggle. Change colours through the `--theme-*` and `--octo-*` tokens, not with own
+Octo tokens and component styles of `@meshmakers/octo-ui` (`src/<app>/src/styles.scss`). The light or dark
+theme follows the setting of the operating system until the user switches it with the toggle in the app bar; the
+app remembers that choice in the browser. Change colours through the `--theme-*` and `--octo-*` tokens, not with own
 `--kendo-color-*` values.
 
 ## Prerequisites
@@ -204,6 +205,22 @@ Edit `src/<your-app>/src/assets/config.json`. For the getting-started stack:
   "scope": "openid profile octo_api offline_access"
 }
 ```
+
+For a **hosted tenant** use the URLs of that OctoMesh installation (ask its operator; they are the identity and
+asset URLs you gave `octo-cli -c Config`), your tenant id and the client id from [Hosted tenant](#hosted-tenant-partner):
+
+```json
+{
+  "tenantId": "<your-tenant>",
+  "apiUrl": "https://<asset-host>",
+  "authorityUrl": "https://<identity-host>/",
+  "assetServicesUrl": "https://<asset-host>",
+  "clientId": "<your-client-id>",
+  "scope": "openid profile octo_api offline_access"
+}
+```
+
+The dev server still runs on `https://localhost:4300`, so the client needs that redirect URI.
 
 | Key | Meaning |
 |---|---|
