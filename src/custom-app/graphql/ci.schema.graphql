@@ -2,7 +2,8 @@
 # CI runs codegen.yml against this file (npm run codegen:check), so a query in src/app/graphQL/
 # that needs a type a fresh tenant does not have fails the build.
 # Once your app queries its own CK model, replace this file with the schema of a tenant that
-# has that model (export_runtime_graphql_sdl, or the SDL download of the tenant).
+# has that model, as SDL (the SDL download of the tenant; the introspection JSON of
+# export_runtime_graphql_sdl does not load here).
 
 schema {
   query: OctoQuery

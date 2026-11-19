@@ -38,7 +38,11 @@ if ($Tool -eq 'octo-cli' -and $command -eq 'ListContexts') {
     if ($env:FAKE_OCTO_LISTCONTEXTS_EXIT) { Write-Output 'error: no contexts'; exit [int]$env:FAKE_OCTO_LISTCONTEXTS_EXIT }
     Write-Output 'OctoMesh CLI (fake) 3.5.0'
     Write-Output ''
-    Get-Content -Raw -Path $env:FAKE_OCTO_CONTEXTS
+    $file = $env:FAKE_OCTO_CONTEXTS
+    if ($env:FAKE_OCTO_CONTEXTS_AFTER_CONFIG -and (Select-String -Path $env:FAKE_OCTO_LOG -Pattern '^octo-cli -c Config ' -Quiet)) {
+        $file = $env:FAKE_OCTO_CONTEXTS_AFTER_CONFIG
+    }
+    Get-Content -Raw -Path $file
     exit 0
 }
 if ($Tool -eq 'octo-ckc' -and $command -eq 'Compile') {
@@ -67,10 +71,11 @@ exit 0
             [string]$Asset = "https://assets.127-0-0-1.nip.io/",
             [string]$Communication,
             [string]$AuthStatus = "valid",
-            [bool]$IsEffective = $true
+            [bool]$IsEffective = $true,
+            [string]$Tenant = "octosystem"
         )
         [ordered]@{
-            name = $Name; isActive = $IsEffective; isEffective = $IsEffective; tenant = "octosystem"
+            name = $Name; isActive = $IsEffective; isEffective = $IsEffective; tenant = $Tenant
             services = [ordered]@{ identity = $Identity; asset = $Asset; bot = $null; communication = $Communication; reporting = $null; ai = $null }
             authStatus = $AuthStatus; accessTokenExpiresAt = $null; hasRefreshToken = $true
         }
@@ -82,11 +87,17 @@ exit 0
             [Parameter(Mandatory)][string]$Script,
             [string[]]$Arguments = @(),
             [object[]]$Contexts = @((New-Context)),
+            [object[]]$ContextsAfterConfig,
             [int]$ListContextsExit = 0
         )
         $id = [guid]::NewGuid().ToString("N")
         $contextsFile = Join-Path $TestDrive "contexts-$id.json"
         ConvertTo-Json -InputObject @($Contexts) -Depth 5 | Set-Content -Path $contextsFile
+        $afterFile = $null
+        if ($PSBoundParameters.ContainsKey("ContextsAfterConfig")) {
+            $afterFile = Join-Path $TestDrive "contexts-after-$id.json"
+            ConvertTo-Json -InputObject @($ContextsAfterConfig) -Depth 5 | Set-Content -Path $afterFile
+        }
         $log = Join-Path $TestDrive "calls-$id.log"
         Set-Content -Path $log -Value $null
         $oldPath = $env:PATH
@@ -94,6 +105,7 @@ exit 0
         $env:FAKE_OCTO_LOG = $log
         $env:FAKE_OCTO_CONTEXTS = $contextsFile
         $env:FAKE_OCTO_LISTCONTEXTS_EXIT = if ($ListContextsExit) { "$ListContextsExit" } else { $null }
+        $env:FAKE_OCTO_CONTEXTS_AFTER_CONFIG = $afterFile
         try {
             $output = & pwsh -NoProfile -NonInteractive -File (Join-Path $script:Repo "scripts" $Script) @Arguments 2>&1 |
                 ForEach-Object { "$_" }
@@ -104,6 +116,7 @@ exit 0
             $env:FAKE_OCTO_LOG = $null
             $env:FAKE_OCTO_CONTEXTS = $null
             $env:FAKE_OCTO_LISTCONTEXTS_EXIT = $null
+            $env:FAKE_OCTO_CONTEXTS_AFTER_CONFIG = $null
         }
         $calls = @(Get-Content -Path $log | Where-Object { $_ })
         [pscustomobject]@{
@@ -154,6 +167,31 @@ Describe "Recognising a local stack (Test-OctoLocalUrl)" {
     }
 }
 
+Describe "Validating tenant ids (Assert-OctoTenantId)" {
+    BeforeAll { . (Join-Path $script:SourceScripts "om_common.ps1") }
+
+    It "accepts <TenantId>" -ForEach @(
+        @{ TenantId = "custom-app" }
+        @{ TenantId = "test_ordi2" }
+    ) {
+        { Assert-OctoTenantId -TenantId $TenantId -NotSystem } | Should -Not -Throw
+    }
+
+    It "rejects <Case>" -ForEach @(
+        @{ Case = "an option-like id"; TenantId = "-y" }
+        @{ Case = "a trailing newline"; TenantId = "my-app`n" }
+        @{ Case = "the system tenant with a trailing newline"; TenantId = "octosystem`n" }
+        @{ Case = "a leading blank"; TenantId = " my-app" }
+        @{ Case = "an empty id"; TenantId = "" }
+    ) {
+        { Assert-OctoTenantId -TenantId $TenantId -NotSystem } | Should -Throw '*Invalid tenant id*'
+    }
+
+    It "rejects the system tenant in any case when -NotSystem is set" {
+        { Assert-OctoTenantId -TenantId "OctoSystem" -NotSystem } | Should -Throw '*system tenant*'
+    }
+}
+
 Describe "om_initialize_tenant.ps1" {
     Context "default (no switch): imports into the existing tenant, never deletes or creates" {
         It "abuse case 1: default call against a non-local context deletes and creates nothing" {
@@ -201,8 +239,8 @@ Describe "om_initialize_tenant.ps1" {
         It "deletes and recreates the tenant on the local getting-started stack" {
             $r = Invoke-TenantScript -Script "om_initialize_tenant.ps1" -Arguments @("-TenantId", "my-app", "-Recreate")
             $r.ExitCode | Should -Be 0 -Because $r.Output
-            $delete = [array]::IndexOf($r.Calls, "octo-cli -c Delete -tid my-app -y")
-            $create = [array]::IndexOf($r.Calls, "octo-cli -c Create -tid my-app -db my-app -np")
+            $delete = [array]::IndexOf($r.Calls, "octo-cli -c Delete -tid my-app -y --context local")
+            $create = [array]::IndexOf($r.Calls, "octo-cli -c Create -tid my-app -db my-app -np --context local")
             $delete | Should -BeGreaterOrEqual 0 -Because ($r.Calls -join "`n")
             $create | Should -BeGreaterThan $delete
             ($r.Calls -match '^octo-cli -c ImportRt -f ') | Should -HaveCount 1
@@ -212,7 +250,23 @@ Describe "om_initialize_tenant.ps1" {
             $dev = New-Context -Name "dev" -Identity "https://localhost:5003/" -Asset "https://localhost:5001/"
             $r = Invoke-TenantScript -Script "om_initialize_tenant.ps1" -Arguments @("-TenantId", "my-app", "-Recreate") -Contexts @($dev)
             $r.ExitCode | Should -Be 0 -Because $r.Output
-            $r.Calls | Should -Contain "octo-cli -c Delete -tid my-app -y"
+            $r.Calls | Should -Contain "octo-cli -c Delete -tid my-app -y --context dev"
+        }
+
+        It "refuses when the active context is switched between the check and the delete (<Case>)" -ForEach @(
+            @{ Case = "another context became active"; Kind = "other" }
+            @{ Case = "the same context now points at a remote stack"; Kind = "remote" }
+            @{ Case = "the context lost its tenant"; Kind = "tenant" }
+        ) {
+            $after = switch ($Kind) {
+                "other" { @((New-Context -IsEffective $false), (New-Context -Name "staging-1" -Identity "https://connect.staging.example.com/" -Asset "https://assets.staging.example.com/")) }
+                "remote" { @((New-Context -Name "local" -Identity "https://connect.staging.example.com/" -Asset "https://assets.staging.example.com/")) }
+                "tenant" { @((New-Context -Tenant "test-ordi")) }
+            }
+            $r = Invoke-TenantScript -Script "om_initialize_tenant.ps1" -Arguments @("-TenantId", "my-app", "-Recreate") -ContextsAfterConfig $after
+            $r.ExitCode | Should -Not -Be 0
+            $r.Calls | Should -Not -Match ' -c (Delete|Create|ProvisionCurrentUser)( |$)'
+            $r.Output | Should -Match 'changed after it was checked'
         }
 
         It "abuse case 1/2: refuses against a non-local context before any write" {
@@ -279,13 +333,13 @@ Describe "om_initialize_tenant.ps1" {
     }
 
     It "refuses a tenant id that is not a plain name (<TenantId>)" -ForEach @(
-        @{ TenantId = "-y" }
         @{ TenantId = "my app" }
         @{ TenantId = "my;app" }
     ) {
         $r = Invoke-TenantScript -Script "om_initialize_tenant.ps1" -Arguments @("-TenantId", $TenantId)
         $r.ExitCode | Should -Not -Be 0
         $r.Writes | Should -BeNullOrEmpty
+        $r.Output | Should -Match 'Invalid tenant id'
     }
 }
 
@@ -300,7 +354,7 @@ Describe "om_delete_tenants.ps1" {
     It "deletes on a local stack with -Force" {
         $r = Invoke-TenantScript -Script "om_delete_tenants.ps1" -Arguments @("-TenantId", "my-app", "-Force")
         $r.ExitCode | Should -Be 0 -Because $r.Output
-        $r.Calls | Should -Contain "octo-cli -c Delete -tid my-app -y"
+        $r.Calls | Should -Contain "octo-cli -c Delete -tid my-app -y --context local"
         $r.Output | Should -Match "Target: context 'local', identity https://identity\.127-0-0-1\.nip\.io/"
     }
 
@@ -334,7 +388,7 @@ Describe "om_create_tenants.ps1" {
     It "creates the tenant on a local stack" {
         $r = Invoke-TenantScript -Script "om_create_tenants.ps1" -Arguments @("-TenantId", "my-app")
         $r.ExitCode | Should -Be 0 -Because $r.Output
-        $r.Calls | Should -Contain "octo-cli -c Create -tid my-app -db my-app -np"
+        $r.Calls | Should -Contain "octo-cli -c Create -tid my-app -db my-app -np --context local"
     }
 
     It "refuses a non-local context before any write" {

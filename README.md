@@ -109,6 +109,8 @@ With an AI agent and the OctoMesh MCP server of your tenant you can do the same 
 `om_setupIdentityService_local.ps1` works on a hosted tenant too, when you run the dev server on
 `https://localhost:4300/` against it; it only adds the OIDC client to the tenant.
 
+### 2. Configure
+
 Edit `src/<your-app>/src/assets/config.json`. For the getting-started stack:
 
 ```json

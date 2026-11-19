@@ -5,8 +5,10 @@
 # active context (keeping the login), so the service URLs are read from the active context and passed again.
 #
 # Safety rule: a script deletes or creates a tenant only when every service URL of the active octo-cli context is a
-# local stack (Assert-OctoLocalContext) and the user asked for it with a switch; otherwise it stops before any write,
-# also before `Config`. The decision uses the URLs, never the name of the context.
+# local stack (Assert-OctoLocalContext); deleting also needs an explicit switch (-Recreate / -Force). Otherwise it stops
+# before any write, also before `Config`. The decision uses the URLs, never the name of the context. After `Config`
+# the context is read again (Confirm-OctoContextUnchanged) and the delete and create calls name it with --context, so
+# switching the active context in another terminal meanwhile cannot redirect them.
 $ErrorActionPreference = "Stop"
 $SystemTenantId = "octosystem"
 
@@ -21,7 +23,8 @@ function Invoke-OctoCli {
 function Assert-OctoTenantId {
     # A tenant id is a plain name; it is passed to octo-cli as an argument and must not look like an option.
     param([Parameter(Mandatory)][AllowEmptyString()][string]$TenantId, [switch]$NotSystem)
-    if ($TenantId -notmatch '^[A-Za-z0-9][A-Za-z0-9_-]{0,62}$') {
+    # \A and \z: '$' would also accept a trailing newline.
+    if ($TenantId -notmatch '\A[A-Za-z0-9][A-Za-z0-9_-]{0,62}\z') {
         throw "Invalid tenant id '$TenantId': use letters, digits, '-' and '_' only, starting with a letter or digit."
     }
     if ($NotSystem -and $TenantId -ieq $SystemTenantId) {
@@ -90,6 +93,23 @@ function Assert-OctoLocalContext {
             "($($notLocal -join ', ')). Deleting or creating tenants is only allowed on a local stack " +
             "(localhost, 127.0.0.1 or *.127-0-0-1.nip.io). Nothing was changed.")
     }
+}
+
+function Confirm-OctoContextUnchanged {
+    # Reads the active context again after `Config` and throws unless it is still the checked one: same name, the
+    # expected tenant, the same service URLs, all local.
+    param([Parameter(Mandatory)]$Expected, [Parameter(Mandatory)][string]$TenantId, [Parameter(Mandatory)][string]$Action)
+    $now = Get-OctoCliContext
+    $changed = @()
+    if ($now.name -cne $Expected.name) { $changed += "context '$($now.name)' instead of '$($Expected.name)'" }
+    if ($now.tenant -ine $TenantId) { $changed += "tenant '$($now.tenant)' instead of '$TenantId'" }
+    foreach ($key in @("identity", "asset", "bot", "communication", "reporting", "ai")) {
+        if ("$($now.services.$key)" -cne "$($Expected.services.$key)") { $changed += "$key URL changed" }
+    }
+    if ($changed.Count -gt 0) {
+        throw "Refusing to $Action`: the active octo-cli context changed after it was checked ($($changed -join ', ')). Nothing was deleted or created."
+    }
+    Assert-OctoLocalContext -Context $now -Action $Action
 }
 
 function Write-OctoTarget {

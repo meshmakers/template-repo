@@ -15,4 +15,5 @@ $context = Get-OctoCliContext
 Assert-OctoLocalContext -Context $context -Action "delete the tenant '$TenantId'"
 Write-OctoTarget -Context $context -TenantId $TenantId
 Set-OctoCliTenant -TenantId $SystemTenantId -Context $context
-Invoke-OctoCli -CliArgs @("-c", "Delete", "-tid", $TenantId, "-y") -IgnoreFailure
+Confirm-OctoContextUnchanged -Expected $context -TenantId $SystemTenantId -Action "delete the tenant '$TenantId'"
+Invoke-OctoCli -CliArgs @("-c", "Delete", "-tid", $TenantId, "-y", "--context", $context.name) -IgnoreFailure

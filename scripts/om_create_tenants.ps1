@@ -27,8 +27,10 @@ $context = Get-OctoCliContext
 Assert-OctoLocalContext -Context $context -Action "create the tenant '$TenantId'"
 Write-OctoTarget -Context $context -TenantId $TenantId
 Set-OctoCliTenant -TenantId $SystemTenantId -Context $context
-Invoke-Retry -Description "Creating the tenant '$TenantId'" -CliArgs @("-c", "Create", "-tid", $TenantId, "-db", $TenantId, "-np")
-Invoke-Retry -Description "Provisioning the current user as admin of '$TenantId'" -CliArgs @("-c", "ProvisionCurrentUser", "-ttid", $TenantId)
+Confirm-OctoContextUnchanged -Expected $context -TenantId $SystemTenantId -Action "create the tenant '$TenantId'"
+$pin = @("--context", $context.name)
+Invoke-Retry -Description "Creating the tenant '$TenantId'" -CliArgs (@("-c", "Create", "-tid", $TenantId, "-db", $TenantId, "-np") + $pin)
+Invoke-Retry -Description "Provisioning the current user as admin of '$TenantId'" -CliArgs (@("-c", "ProvisionCurrentUser", "-ttid", $TenantId) + $pin)
 Set-OctoCliTenant -TenantId $TenantId -Context $context
-Invoke-OctoCli -CliArgs @("-c", "EnableCommunication")
-Invoke-OctoCli -CliArgs @("-c", "EnableStreamData")
+Invoke-OctoCli -CliArgs (@("-c", "EnableCommunication") + $pin)
+Invoke-OctoCli -CliArgs (@("-c", "EnableStreamData") + $pin)
