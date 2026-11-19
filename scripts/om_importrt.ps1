@@ -5,7 +5,10 @@ param (
 # Imports the sample data of the app (the seed of the blueprint) into the tenant of the active octo-cli context.
 . "$PSScriptRoot/om_common.ps1"
 $repoRoot = Split-Path -Parent $PSScriptRoot
-Set-OctoCliTenant -TenantId $TenantId
+Assert-OctoTenantId -TenantId $TenantId
+$context = Get-OctoCliContext
+Write-OctoTarget -Context $context -TenantId $TenantId
+Set-OctoCliTenant -TenantId $TenantId -Context $context
 
 $seed = Get-ChildItem -Path (Join-Path $repoRoot "src" "blueprints") -Directory |
     ForEach-Object { Join-Path $_.FullName "seed-data" "entities.yaml" } |

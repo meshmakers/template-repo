@@ -10,7 +10,10 @@ param (
 #   2. the own model of the app (src/<App>CkModel/ConstructionKit), compiled with octo-ckc.
 . "$PSScriptRoot/om_common.ps1"
 $repoRoot = Split-Path -Parent $PSScriptRoot
-Set-OctoCliTenant -TenantId $TenantId
+Assert-OctoTenantId -TenantId $TenantId
+$context = Get-OctoCliContext
+Write-OctoTarget -Context $context -TenantId $TenantId
+Set-OctoCliTenant -TenantId $TenantId -Context $context
 
 octo-cli -c ImportFromCatalog -cn PublicGitHubCatalog -m "Basic-$basicVersion" -w
 if ($LASTEXITCODE -ne 0) { throw "Importing the Basic Construction Kit failed." }

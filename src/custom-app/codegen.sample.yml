@@ -1,0 +1,40 @@
+# GraphQL code generation for the optional sample (npm run codegen:sample).
+#
+# Needs a tenant schema that contains the sample CK model (`src/CustomAppCkModel`), so import that
+# model into your tenant first and export the schema again. Same schema file as codegen.yml:
+# `schema.json` by default, or the file in OCTO_GRAPHQL_SCHEMA.
+#
+# The generated sample code is committed, so you need this only when you change the sample query.
+overwrite: true
+schema: '${OCTO_GRAPHQL_SCHEMA:schema.json}'
+documents: 'src/app/sample/graphQL/*.graphql'
+generates:
+  src/app/sample/graphQL/globalTypes.ts:
+    plugins:
+      - 'typescript'
+    config:
+      enumsAsTypes: true
+      typeSuffix: 'Dto'
+      scalars:
+        OctoObjectId: string
+        CkAttributeId: string
+        CkEnumId: string
+        CkRecordId: string
+        CkTypeId: string
+  src/app/sample/graphQL/:
+    preset: near-operation-file
+    presetConfig:
+      extension: .generated.ts
+      baseTypesPath: globalTypes.ts
+    plugins:
+      - 'typescript-operations'
+      - 'typescript-apollo-angular'
+    config:
+      enumsAsTypes: true
+      typeSuffix: 'Dto'
+      scalars:
+        OctoObjectId: string
+        CkAttributeId: string
+        CkEnumId: string
+        CkRecordId: string
+        CkTypeId: string

@@ -8,6 +8,7 @@ module.exports = tseslint.config(
   {
     ignores: [
       'src/app/graphQL/**/*.ts',
+      'src/app/sample/graphQL/**/*.ts',
       'src/environments/**/*.ts',
       '**/dist/**',
       '**/codegen/**',
