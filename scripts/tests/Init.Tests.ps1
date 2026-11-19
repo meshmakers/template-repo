@@ -157,11 +157,14 @@ Describe "init.sh without a terminal" -Skip:(-not $script:HasBash) {
         Get-Flags -Copy $copy -Kebab "inspections" | Should -Be @("at", "gb", "de", "fr")
     }
 
-    It "removes the German file when no language uses it and keeps only the flags in use" {
+    It "keeps the German file (its key check stays valid) when no language uses it and writes only the flags in use" {
         $copy = New-TemplateCopy
         $r = Invoke-Init -Copy $copy -Arguments @("--app-name", "Inspections", "--yes")
         $r.ExitCode | Should -Be 0 -Because $r.Output
-        Join-Path $copy "src/inspections/src/assets/i18n/de-AT.json" | Should -Not -Exist
+        Join-Path $copy "src/inspections/src/assets/i18n/de-AT.json" | Should -Exist
+        Join-Path $copy "src/inspections/src/app/translations.spec.ts" | Should -Exist
+        $config = Get-Content -Raw (Join-Path $copy "src/inspections/src/assets/config.json") | ConvertFrom-Json
+        @($config.supportedLanguages.cultureCode) | Should -Be @("en-GB")
         Get-Flags -Copy $copy -Kebab "inspections" | Should -Be @("gb")
         $r.Output | Should -Match 'pwsh scripts/generate-dev-certs\.ps1'
     }
@@ -309,7 +312,7 @@ Describe "init.ps1" -Skip:(-not $script:HasBash) {
         Assert-Client -Copy $copy -Kebab "ordi-terminplan" -ClientId "ordi-frontend"
         $i18n = Join-Path $copy "src/ordi-terminplan/src/assets/i18n"
         (Get-Content -Raw (Join-Path $i18n "fr-FR.json") | ConvertFrom-Json).APP.HOME | Should -Be "Home"
-        Join-Path $i18n "de-AT.json" | Should -Not -Exist
+        Join-Path $i18n "de-AT.json" | Should -Exist
         $r.Output | Should -Match 'Translate the English placeholder texts of: fr-FR'
         Get-Flags -Copy $copy -Kebab "ordi-terminplan" | Should -Be @("gb", "fr")
     }

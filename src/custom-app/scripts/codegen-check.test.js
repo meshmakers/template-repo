@@ -95,9 +95,13 @@ test('the schema is the argument first, then OCTO_GRAPHQL_SCHEMA, then the first
   assert.deepEqual(DEFAULT_SCHEMAS, ['schema.json', 'graphql/ci.schema.json', 'graphql/ci.schema.graphql']);
 });
 
-test('without a local schema.json the check of the template uses the committed fresh tenant schema', () => {
+test('without a local schema.json the check uses the committed ci.schema.json if there is one, else the fresh tenant schema', () => {
   const exists = (file) => file !== 'schema.json' && fs.existsSync(path.join(appDir, file));
-  assert.equal(resolveSchema(undefined, {}, exists).schema, 'graphql/ci.schema.graphql');
+  // Holds for the template (no ci.schema.json) and for an app that committed its own model as graphql/ci.schema.json.
+  const expected = fs.existsSync(path.join(appDir, 'graphql/ci.schema.json'))
+    ? 'graphql/ci.schema.json'
+    : 'graphql/ci.schema.graphql';
+  assert.equal(resolveSchema(undefined, {}, exists).schema, expected);
 });
 
 test('generated types and services carry the Dto suffix of codegen.yml', async () => {

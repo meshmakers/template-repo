@@ -366,7 +366,8 @@ FRONTEND_DIR="$SCRIPT_DIR/src/${KEBAB_CASE}"
 
 # i18n files: the template ships en-GB.json and a German translation (de-AT.json). Every other German language
 # (de-DE, de-CH, ...) starts from the German file, any other language from the English one; those texts are
-# placeholders to translate. de-AT.json is removed when no language uses it.
+# placeholders to translate. de-AT.json stays even when no language uses it: src/app/translations.spec.ts keeps
+# its keys in step with en-GB.json, and adding de-AT later only needs config.json.
 I18N_DIR="$FRONTEND_DIR/src/assets/i18n"
 PLACEHOLDER_LANGS=""
 IFS=',' read -ra LANG_ARRAY <<< "$ALL_LANGS"
@@ -387,7 +388,6 @@ for lang in "${LANG_ARRAY[@]}"; do
 done
 case ",$ALL_LANGS," in
   *",de-AT,"*) echo "  i18n file de-AT.json (German texts)" ;;
-  *) rm -f "$I18N_DIR/de-AT.json" ;;
 esac
 
 # Default and supported languages in config.json, and the flags of the language picker in styles.scss. The values go

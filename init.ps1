@@ -367,8 +367,8 @@ foreach ($lang in $AllLangs) {
         }
     }
 }
+# de-AT.json stays even when no language uses it: src/app/translations.spec.ts keeps its keys in step with en-GB.json.
 if ($AllLangs -ccontains 'de-AT') { Write-Host "  i18n file de-AT.json (German texts)" }
-else { Remove-Item -Path (Join-Path $FrontendDir "src" "assets" "i18n" "de-AT.json") -ErrorAction SilentlyContinue }
 
 # Update config.json
 $config = Get-Content $ConfigFile -Raw | ConvertFrom-Json
