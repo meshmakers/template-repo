@@ -1,4 +1,4 @@
-import { GetItemsQuery } from '../graphQL/getItems.generated';
+import { GetItemsQuery } from './graphQL/getItems.generated';
 import { deriveViewState, ItemRow, mapItems, statusLabel } from './items';
 
 type GqlItems = NonNullable<

@@ -56,7 +56,8 @@
     "SUBMESSAGE": "Please try again later."
   },
   "HOME": {
-    "INTRO": "This is the home page of your OctoMesh Custom App. It reads the items of your tenant.",
+    "INTRO": "This is the home page of your OctoMesh Custom App.",
+    "SAMPLE_OFF": "The sample items table is off: it needs the sample data model of this template in your tenant. Import it, then turn the sample on in src/app/sample/sample-items.config.ts (README, 'Generate the GraphQL types').",
     "ITEMS_TITLE": "Items",
     "ITEMS_EMPTY": "There are no items in this tenant yet. Import the sample data of the blueprint (see the README, step 'Set up the tenant') and reload.",
     "ITEMS_ERROR": "The items could not be loaded. Check the connection and your sign-in, then try again.",

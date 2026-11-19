@@ -64,6 +64,9 @@ npm run build:prod
 
 # GraphQL codegen (after adding .graphql files)
 npm run codegen
+
+# CI check: queries valid for a fresh tenant, and its tests
+npm run codegen:check && npm run test:codegen
 ```
 
 ## npm install-script policy
@@ -101,10 +104,17 @@ Short names without `.component` suffix: `home.ts`, `home.html`, `home.scss`.
 Runtime config loaded from `/assets/config.json`. In Docker, environment variables override config via `entrypoint.sh`.
 
 ### GraphQL Codegen Workflow
-1. Copy/update `schema.graphql` from OctoMesh API
+1. Save the tenant schema as `schema.json` (introspection JSON of the MCP tool `export_runtime_graphql_sdl`), or set
+   `OCTO_GRAPHQL_SCHEMA=<file>` for another file (e.g. an SDL `schema.graphql`); both are gitignored
 2. Create `.graphql` query files in `src/app/graphQL/`
 3. Run `npm run codegen`
 4. Import generated services in your components
+
+`codegen.yml` covers only `src/app/graphQL/*.graphql`; those queries must work on a fresh tenant (System CKs + Basic).
+`npm run codegen:check` (CI) validates them in memory against the committed `graphql/ci.schema.graphql`;
+`npm run test:codegen` tests that check. The optional sample (items table on the home page) lives in `src/app/sample/`:
+its query needs the sample CK model, has its own `codegen.sample.yml` (`npm run codegen:sample`) and is switched on
+with `SAMPLE_ITEMS_ENABLED` in `src/app/sample/sample-items.config.ts` (default `false`).
 
 Example query file (`src/app/graphQL/getAssets.graphql`):
 ```graphql
@@ -164,12 +174,15 @@ src/custom-app/
 │   │   ├── guards/          — Route guards
 │   │   ├── models/          — TypeScript interfaces
 │   │   ├── pages/           — Page components
+│   │   ├── sample/          — Optional sample items (query, service, model; off by default)
 │   │   └── services/        — Application services
 │   ├── assets/
 │   │   ├── config.json      — Runtime configuration
 │   │   └── i18n/            — Translation files
 │   ├── environments/        — Version info
 │   └── testing/             — Test utilities
+├── graphql/ci.schema.graphql — Fresh-tenant schema for the codegen CI check
+├── codegen.yml / codegen.sample.yml
 ├── angular.json
 ├── package.json
 ├── Dockerfile               — nginx production image

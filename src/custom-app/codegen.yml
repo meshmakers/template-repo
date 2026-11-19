@@ -1,5 +1,19 @@
+# GraphQL code generation for the app's own queries (npm run codegen).
+#
+# Schema: the GraphQL schema of your tenant, by default `schema.json` in this folder - the
+# introspection JSON that the MCP tool `export_runtime_graphql_sdl` returns. Point it at another
+# file with the environment variable OCTO_GRAPHQL_SCHEMA, for example an SDL download:
+#   OCTO_GRAPHQL_SCHEMA=schema.graphql npm run codegen
+# The file is tenant specific and not committed (.gitignore).
+#
+# Documents: only `src/app/graphQL/*.graphql`. They must use types every tenant has (the System
+# CKs), so codegen also runs on a fresh tenant. The sample query of the template lives in
+# `src/app/sample/graphQL/` and has its own config (codegen.sample.yml, npm run codegen:sample)
+# because its type exists only after the sample CK model is imported.
+#
+# CI: npm run codegen:check runs this config against graphql/ci.schema.graphql.
 overwrite: true
-schema: 'schema.graphql'
+schema: '${OCTO_GRAPHQL_SCHEMA:schema.json}'
 documents: 'src/app/graphQL/*.graphql'
 generates:
   src/app/graphQL/globalTypes.ts:

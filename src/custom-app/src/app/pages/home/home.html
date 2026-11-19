@@ -4,34 +4,38 @@
     {{ 'HOME.INTRO' | translate }}
   </p>
 
-  <h2 class="text-lg font-medium mb-2">{{ 'HOME.ITEMS_TITLE' | translate }}</h2>
+  @if (!sampleEnabled) {
+    <p data-testid="sample-off">{{ 'HOME.SAMPLE_OFF' | translate }}</p>
+  } @else {
+    <h2 class="text-lg font-medium mb-2">{{ 'HOME.ITEMS_TITLE' | translate }}</h2>
 
-  @switch (state()) {
-    @case ('loading') {
-      <p role="status">{{ 'COMMON.LOADING' | translate }}</p>
-    }
-    @case ('error') {
-      <div role="alert">
-        <p class="mb-2">{{ 'HOME.ITEMS_ERROR' | translate }}</p>
-        <button kendoButton type="button" (click)="load()">
-          {{ 'COMMON.RETRY' | translate }}
-        </button>
-      </div>
-    }
-    @case ('empty') {
-      <p>{{ 'HOME.ITEMS_EMPTY' | translate }}</p>
-    }
-    @default {
-      <kendo-grid [data]="rows()" [style.maxHeight.px]="480">
-        <kendo-grid-column field="name" [title]="'HOME.COLUMN_NAME' | translate" />
-        <kendo-grid-column field="code" [title]="'HOME.COLUMN_CODE' | translate" />
-        <kendo-grid-column
-          field="quantity"
-          [title]="'HOME.COLUMN_QUANTITY' | translate"
-          format="n0"
-        />
-        <kendo-grid-column field="status" [title]="'HOME.COLUMN_STATUS' | translate" />
-      </kendo-grid>
+    @switch (state()) {
+      @case ('loading') {
+        <p role="status">{{ 'COMMON.LOADING' | translate }}</p>
+      }
+      @case ('error') {
+        <div role="alert">
+          <p class="mb-2">{{ 'HOME.ITEMS_ERROR' | translate }}</p>
+          <button kendoButton type="button" (click)="load()">
+            {{ 'COMMON.RETRY' | translate }}
+          </button>
+        </div>
+      }
+      @case ('empty') {
+        <p>{{ 'HOME.ITEMS_EMPTY' | translate }}</p>
+      }
+      @default {
+        <kendo-grid [data]="rows()" [style.maxHeight.px]="480">
+          <kendo-grid-column field="name" [title]="'HOME.COLUMN_NAME' | translate" />
+          <kendo-grid-column field="code" [title]="'HOME.COLUMN_CODE' | translate" />
+          <kendo-grid-column
+            field="quantity"
+            [title]="'HOME.COLUMN_QUANTITY' | translate"
+            format="n0"
+          />
+          <kendo-grid-column field="status" [title]="'HOME.COLUMN_STATUS' | translate" />
+        </kendo-grid>
+      }
     }
   }
 </div>

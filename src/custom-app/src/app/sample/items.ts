@@ -1,4 +1,4 @@
-import { GetItemsQuery } from '../graphQL/getItems.generated';
+import { GetItemsQuery } from './graphQL/getItems.generated';
 
 /** One row of the items table on the home page. */
 export interface ItemRow {

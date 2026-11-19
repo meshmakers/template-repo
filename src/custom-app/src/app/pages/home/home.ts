@@ -9,8 +9,9 @@ import {
 import { ButtonsModule } from '@progress/kendo-angular-buttons';
 import { GridModule } from '@progress/kendo-angular-grid';
 import { TranslatePipe } from '@ngx-translate/core';
-import { ItemRow, deriveViewState } from '../../models/items';
-import { ItemsService } from '../../services/items.service';
+import { ItemRow, deriveViewState } from '../../sample/items';
+import { ItemsService } from '../../sample/items.service';
+import { SAMPLE_ITEMS } from '../../sample/sample-items.config';
 
 @Component({
   selector: 'app-home',
@@ -23,6 +24,9 @@ import { ItemsService } from '../../services/items.service';
 export class HomeComponent implements OnInit {
   private readonly itemsService = inject(ItemsService);
 
+  /** The sample items table stays off until the sample CK model is imported (sample-items.config.ts). */
+  readonly sampleEnabled = inject(SAMPLE_ITEMS);
+
   readonly rows = signal<ItemRow[]>([]);
   readonly loading = signal(false);
   readonly failed = signal(false);
@@ -31,7 +35,9 @@ export class HomeComponent implements OnInit {
   );
 
   ngOnInit(): void {
-    this.load();
+    if (this.sampleEnabled) {
+      this.load();
+    }
   }
 
   /** Loads the items; also used by the retry button of the error state. */
