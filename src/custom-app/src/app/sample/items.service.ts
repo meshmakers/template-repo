@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { GetItemsGQL } from './graphQL/getItems.generated';
+import { GetItemsDtoGQL } from './graphQL/getItems.generated';
 import { ItemRow, mapItems } from './items';
 
 /** Reads the items of the tenant. Errors are not swallowed: the caller shows them and offers a retry. */
@@ -9,7 +9,7 @@ import { ItemRow, mapItems } from './items';
   providedIn: 'root',
 })
 export class ItemsService {
-  private readonly getItemsGQL = inject(GetItemsGQL);
+  private readonly getItemsGQL = inject(GetItemsDtoGQL);
 
   loadItems(first = 100): Observable<ItemRow[]> {
     return this.getItemsGQL

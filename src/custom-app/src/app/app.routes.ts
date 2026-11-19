@@ -1,19 +1,14 @@
 import { Routes } from '@angular/router';
-import { inject } from '@angular/core';
 import { authorizeGuard } from '@meshmakers/shared-auth';
 import { languageGuard } from './guards/language.guard';
-import { LanguageService } from './services/language.service';
+import { redirectToDefaultLanguage } from './guards/default-language.redirect';
 import { HomeComponent } from './pages/home/home';
 import { DeveloperInfoComponent } from './pages/developer-info/developer-info';
 
 export const routes: Routes = [
   {
     path: '',
-    redirectTo: async () => {
-      const languageService = inject(LanguageService);
-      const defaultLang = languageService.getDefaultLanguage();
-      return defaultLang?.cultureCode ?? 'en-GB';
-    },
+    redirectTo: redirectToDefaultLanguage,
     pathMatch: 'full',
   },
   {
@@ -41,10 +36,6 @@ export const routes: Routes = [
   },
   {
     path: '**',
-    redirectTo: async () => {
-      const languageService = inject(LanguageService);
-      const defaultLang = languageService.getDefaultLanguage();
-      return defaultLang?.cultureCode ?? 'en-GB';
-    },
+    redirectTo: redirectToDefaultLanguage,
   },
 ];

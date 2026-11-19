@@ -13,7 +13,8 @@ cd my-app
 ```
 
 On a terminal the init script asks for:
-- **App Name** (e.g., `Acme`) - used for naming throughout the project
+- **App Name** in PascalCase (`FieldInspections`) or kebab-case (`field-inspections`, converted to `FieldInspections`) -
+  used for naming throughout the project
 - **Tenant ID** - the OctoMesh tenant the app and the scripts work in (default: the kebab-case app name, e.g. `acme`)
 - **Default Language** (default: `en-GB`)
 - **Additional Languages** (optional, comma-separated)
@@ -26,21 +27,42 @@ On a terminal the init script asks for:
 
 | Option | Environment variable | Meaning |
 |---|---|---|
-| `--app-name <Name>` | `INIT_APP_NAME` | App name in PascalCase (required) |
+| `--app-name <Name>` | `INIT_APP_NAME` | App name in PascalCase or kebab-case (required) |
 | `--tenant-id <id>` | `INIT_TENANT_ID` | Tenant of the app (default: the kebab-case app name; the script prints the value it uses) |
+| `--client-id <id>` | `INIT_CLIENT_ID` | OIDC client the app signs in with (default: `<kebab-case app name>-frontend-debug`, see [Hosted tenant](#hosted-tenant-partner)) |
 | `--lang <code>` | `INIT_DEFAULT_LANG` | Default language (default: `en-GB`) |
 | `--extra-langs <a,b>` | `INIT_EXTRA_LANGS` | Additional languages (default: none) |
 | `--yes`, `-y` | `INIT_ASSUME_YES=1` | No confirmation question |
 | | `INIT_INTERACTIVE=1` or `0` | Ask (`1`) or never ask (`0`); default: ask only when stdin is a terminal |
 
-Without a terminal the script never asks: `--app-name` and `--yes` are required, the rest has defaults. Invalid
-input (an app name that is not PascalCase, an invalid tenant id or language code, a missing required option) stops
-it with exit code 2 before it changes any file. `./init.sh --help` lists all options. The tenant id goes into
+Without a terminal the script never asks: `--app-name` and `--yes` are required, the rest has defaults. The client id
+is never asked for; pass `--client-id` when it is not the default. Invalid input (an app name that is neither
+PascalCase nor kebab-case, an invalid tenant id, client id or language code, a missing required option) stops it with
+exit code 2 before it changes any file. `./init.sh --help` lists all options. The tenant id goes into
 `src/<app>/src/assets/config.json`, the Helm values (`config.tenantId`) and the default `-TenantId` of every script in
-`scripts/`. On Windows without bash, `init.ps1` takes the same values (`-AppName`, `-TenantId`, `-Lang`,
-`-ExtraLangs`, `-Yes`).
+`scripts/`; the client id goes into `config.json` (`clientId`) and the default `-ClientId` of
+`scripts/om_setupIdentityService_local.ps1`. On Windows without bash, `init.ps1` takes the same values (`-AppName`,
+`-TenantId`, `-ClientId`, `-Lang`, `-ExtraLangs`, `-Yes`) and also creates the dev certificates (step 2 below).
 
-### 2. Install & Run
+**Languages**: English (`en-GB`) and German (`de-AT`; `de-DE`, `de-CH` and other `de-*` codes get a copy of it) come
+with translated texts. Any other language starts as a copy of the English texts: init prints which files hold these
+placeholders, translate them in `src/<app>/src/assets/i18n/<code>.json`. init also adds the flags of your languages to
+the language picker (`$flag-icons-included-countries` in `src/<app>/src/styles.scss`).
+
+### 2. Create the dev certificates
+
+`npm start` serves the app over https on `https://localhost:4300` and needs a certificate (`localhost.crt` and
+`localhost.key` in `src/<app>/`, set in `angular.json`). Create it once, from the repository root, with PowerShell 7
+and openssl:
+
+```bash
+pwsh scripts/generate-dev-certs.ps1          # localhost.crt, localhost.key and ca.crt in src/<app>/
+pwsh scripts/generate-dev-certs.ps1 -Trust   # the same, and trusts the CA so the browser shows no warning
+```
+
+Without the files `npm start` stops at once and prints these commands. The files are gitignored; never commit them.
+
+### 3. Install & Run
 
 ```bash
 cd src/<your-app-name>/
@@ -49,6 +71,12 @@ npm start
 ```
 
 See **Local Development** below for the tenant, the configuration and the Telerik licence the dev server needs.
+
+The app uses the design of the Meshmakers apps (Refinery Studio, Meshmakers App): the Kendo Material theme with the
+Octo tokens and component styles of `@meshmakers/octo-ui` (`src/<app>/src/styles.scss`). The light or dark
+theme follows the setting of the operating system until the user switches it with the toggle in the app bar; the
+app remembers that choice in the browser. Change colours through the `--theme-*` and `--octo-*` tokens, not with own
+`--kendo-color-*` values.
 
 ## Prerequisites
 
@@ -140,8 +168,28 @@ With an AI agent and the OctoMesh MCP server of your tenant you can do the same 
 | Model of the app | `octo-ckc -c Compile …`, then `octo-cli -c ImportCk -f <compiled ck yaml> -w` | compile with `octo-ckc`, then `prepare_file_upload` and `import_ck_model` with the compiled `ck-<model>-<major>.yaml` |
 | Sample data (optional) | `octo-cli -c ImportRt -f src/blueprints/<App>/seed-data/entities.yaml -w` | `prepare_file_upload` and `import_runtime_model` (strategy `InsertOnly`) with `entities.yaml` |
 
-`om_setupIdentityService_local.ps1` works on a hosted tenant too, when you run the dev server on
-`https://localhost:4300/` against it; it only adds the OIDC client to the tenant.
+**The OIDC client on a hosted tenant.** The app signs in with the client in `clientId` of `config.json`. By default
+that is `<app>-frontend-debug`, the client `om_setupIdentityService_local.ps1` registers for
+`https://localhost:4300/`; run it against your tenant (it only adds the client, and needs the right to manage clients
+there):
+
+```bash
+cd scripts
+pwsh om_setupIdentityService_local.ps1 -TenantId <your-tenant>
+```
+
+When your tenant administrator registered the client for you instead (with redirect URI `https://localhost:4300/` and
+the scopes `octo_api` and `offline_access`), pass its id to `init.sh`, so the app and the script use it:
+`./init.sh --app-name <App> --tenant-id <your-tenant> --client-id <their-client-id> --yes`. In an app that is
+initialised already, set `clientId` in `src/<app>/src/assets/config.json` and pass `-ClientId <id>` to the script.
+A client id that the tenant does not know ends the sign-in with an "invalid_client" or "unknown client" page of the
+identity service.
+
+The app sends the tenant id of `config.json` with the sign-in (`acr_values=tenant:<tenant>`), so the identity
+service opens the login page of your tenant directly and does not ask for the tenant first.
+
+Before `npm start`, create the dev certificates (`pwsh scripts/generate-dev-certs.ps1`, see
+[Quick Start](#2-create-the-dev-certificates)); the hosted tenant does not change that.
 
 ### 2. Configure
 
@@ -158,13 +206,29 @@ Edit `src/<your-app>/src/assets/config.json`. For the getting-started stack:
 }
 ```
 
+For a **hosted tenant** use the URLs of that OctoMesh installation (ask its operator; they are the identity and
+asset URLs you gave `octo-cli -c Config`), your tenant id and the client id from [Hosted tenant](#hosted-tenant-partner):
+
+```json
+{
+  "tenantId": "<your-tenant>",
+  "apiUrl": "https://<asset-host>",
+  "authorityUrl": "https://<identity-host>/",
+  "assetServicesUrl": "https://<asset-host>",
+  "clientId": "<your-client-id>",
+  "scope": "openid profile octo_api offline_access"
+}
+```
+
+The dev server still runs on `https://localhost:4300`, so the client needs that redirect URI.
+
 | Key | Meaning |
 |---|---|
 | `tenantId` | The tenant the app works in; GraphQL is called at `<apiUrl>/tenants/<tenantId>/graphQL` |
 | `apiUrl` | Base URL of the asset repository (tenant API) |
 | `authorityUrl` | Identity service that issues the tokens (OIDC authority) |
 | `assetServicesUrl` | Base URL of the asset services (files and similar) |
-| `clientId` | OIDC client registered by `om_setupIdentityService_local.ps1` (`custom-app-frontend-debug` in the template) |
+| `clientId` | OIDC client the app signs in with: `init.sh --client-id`, by default the client `om_setupIdentityService_local.ps1` registers (`custom-app-frontend-debug` in the template) |
 | `scope` | Requested scopes; `octo_api` gives access to the OctoMesh APIs |
 
 On a developer stack of OctoMesh itself the URLs are `https://localhost:5001`, `https://localhost:5003/` and
@@ -218,11 +282,25 @@ in `src/<app>/src/app/sample/sample-items.config.ts`. The generated code of the 
 is the only step. Only when you change the sample query, export the schema again and run `npm run codegen:sample`
 (config `codegen.sample.yml`).
 
-**CI check**: `npm run codegen:check` validates the queries in `src/app/graphQL/` against the committed schema
-`src/<app>/graphql/ci.schema.graphql` (a fresh tenant) without writing files, and fails when a query needs a type
-that schema does not have; `npm run test:codegen` tests the check itself. The pipeline runs both before lint. Once
-your queries use your own CK model, replace `graphql/ci.schema.graphql` with the SDL of a tenant that has that model
-(the tests in `scripts/codegen-check.test.js` expect that schema without the sample type).
+The generated types and services carry the suffix `Dto` (`typesSuffix` in `codegen.yml`): a query `GetAssets` gives
+`GetAssetsQueryDto` and the injectable service `GetAssetsDtoGQL`.
+
+**Check the queries**: `npm run codegen:check` validates the queries in `src/app/graphQL/` against a schema without
+writing files, and fails when a query needs a type that schema does not have. It takes the first schema that applies:
+
+1. a file you name: `node scripts/codegen-check.js codegen.yml <schema file>`;
+2. the file in `OCTO_GRAPHQL_SCHEMA` (the same variable `npm run codegen` reads);
+3. `src/<app>/schema.json`, the export of your own tenant (step 1 above; gitignored, so only on your machine);
+4. `src/<app>/graphql/ci.schema.json`, an introspection JSON you commit for CI;
+5. `src/<app>/graphql/ci.schema.graphql`, the committed SDL of a fresh tenant (the template's own check).
+
+SDL (`.graphql`) and introspection JSON (`.json`, as `export_runtime_graphql_sdl` returns it) both work. The output
+names the schema it used. So on your machine, with `schema.json` exported, `npm run codegen:check` checks your queries
+against your own model. For CI, where `schema.json` does not exist, commit the same export as
+`graphql/ci.schema.json` once your queries use your own CK model; the pipeline then checks against it.
+`npm run test:codegen` tests the check itself (and the certificate check of `npm start`); the pipeline runs both
+before lint. Its tests check your queries against that same CI schema, and use `graphql/ci.schema.graphql` as the
+fresh tenant schema without the sample type, so keep that file when you add `graphql/ci.schema.json`.
 
 ## Project Structure
 
@@ -251,9 +329,10 @@ Before `init.sh` runs, two scripts check the template itself (both are removed b
   reference or an open verification marker.
 - `scripts/ci/verify-template.sh` runs the public file check, initialises a copy of the repository without a terminal
   (`--app-name Inspections --tenant-id test-ordi --lang en-GB --extra-langs de-AT --yes`), checks that no template
-  name is left and that the tenant id is in every place the app and the scripts read it, runs the script tests in
-  the copy and then `npm ci`, the codegen check, lint, unit tests and the production build of the generated app
-  (`--skip-app` stops after the checks of the copy).
+  name is left, that the tenant id and the client id are in every place the app and the scripts read them and that
+  de-AT got the German texts and its flag, runs the script tests in the copy and then `npm ci`, the codegen check,
+  lint, unit tests and the production build of the generated app, and finally that the built styles contain the
+  Kendo theme and the Octo tokens (`--skip-app` stops after the checks of the copy).
 
 `pwsh scripts/tests/Invoke-ScriptTests.ps1` also runs the tests of `init.sh` (`scripts/tests/Init.Tests.ps1`).
 

@@ -4,11 +4,11 @@ import * as Apollo from 'apollo-angular';
 
 export type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
 
-export type GetMaintenanceModeQueryVariables = Exact<{ [key: string]: never; }>;
+export type GetMaintenanceModeQueryVariablesDto = Exact<{ [key: string]: never; }>;
 
-export type GetMaintenanceModeQuery = { __typename?: 'OctoQuery', runtime?: { __typename?: 'RuntimeModelQuery', systemTenantModeConfiguration?: { __typename?: 'SystemTenantModeConfigurationConnection', edges?: Array<{ __typename?: 'SystemTenantModeConfigurationEdge', node?: { __typename?: 'SystemTenantModeConfiguration', rtId: string, maintenanceLevel: string, environmentMode: string } | null } | null> | null } | null } | null };
+export type GetMaintenanceModeQueryDto = { __typename?: 'OctoQuery', runtime?: { __typename?: 'RuntimeModelQuery', systemTenantModeConfiguration?: { __typename?: 'SystemTenantModeConfigurationConnection', edges?: Array<{ __typename?: 'SystemTenantModeConfigurationEdge', node?: { __typename?: 'SystemTenantModeConfiguration', rtId: string, maintenanceLevel: string, environmentMode: string } | null } | null> | null } | null } | null };
 
-export const GetMaintenanceModeDocument = gql`
+export const GetMaintenanceModeDocumentDto = gql`
     query GetMaintenanceMode {
   runtime {
     systemTenantModeConfiguration(first: 1) {
@@ -27,8 +27,8 @@ export const GetMaintenanceModeDocument = gql`
   @Injectable({
     providedIn: 'root'
   })
-  export class GetMaintenanceModeGQL extends Apollo.Query<GetMaintenanceModeQuery, GetMaintenanceModeQueryVariables> {
-    document = GetMaintenanceModeDocument;
+  export class GetMaintenanceModeDtoGQL extends Apollo.Query<GetMaintenanceModeQueryDto, GetMaintenanceModeQueryVariablesDto> {
+    document = GetMaintenanceModeDocumentDto;
 
     constructor(apollo: Apollo.Apollo) {
       super(apollo);

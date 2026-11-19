@@ -5,10 +5,15 @@
 This is a template repository for building OctoMesh Custom Apps. It provides an Angular frontend that connects to OctoMesh backend services (Identity Server, Tenant API, Asset Services) via configuration.
 
 After cloning, run `./init.sh` to customize the template for your project. As an agent (no terminal) pass every value:
-`./init.sh --app-name <PascalCase> --tenant-id <tenant> --lang en-GB --extra-langs de-AT --yes` (or the `INIT_*`
-variables, `./init.sh --help`); it never prompts without a terminal and exits 2 on invalid input before changing a
-file. The tenant id is separate from the app name (default: kebab-case app name) and lands in `config.json`, the Helm
-values and the `-TenantId` default of the scripts.
+`./init.sh --app-name <PascalCase|kebab-case> --tenant-id <tenant> [--client-id <id>] --lang en-GB --extra-langs de-AT --yes`
+(or the `INIT_*` variables, `./init.sh --help`); it never prompts without a terminal and exits 2 on invalid input
+before changing a file. A kebab-case app name (`field-inspections`) is converted to PascalCase (`FieldInspections`).
+The tenant id is separate from the app name (default: kebab-case app name) and lands in `config.json`, the Helm
+values and the `-TenantId` default of the scripts. The client id (default `<kebab>-frontend-debug`; on a hosted tenant
+the client the tenant administrator registered) lands in `config.json` and the `-ClientId` default of
+`om_setupIdentityService_local.ps1`. `de-*` languages get the German texts of `de-AT.json`, other languages a copy of
+the English texts (placeholders); init adds their flags to `styles.scss`. `npm start` needs the dev certificates
+(`pwsh scripts/generate-dev-certs.ps1`); without them it stops with that hint (`scripts/check-dev-certs.js`).
 
 Template-only checks (removed by `init.sh`): `scripts/ci/check-public-files.sh` (no internal work item references or
 open verification markers in this public repo), `scripts/ci/verify-template.sh` (non-interactive init of a copy,
@@ -21,7 +26,14 @@ files of this repository; they belong in commit messages.
 - **Layout**: Kendo AppBar + Kendo Drawer (Demo-App pattern)
 - **Auth**: OIDC via `angular-oauth2-oidc` + `@meshmakers/shared-auth`
 - **API**: GraphQL via Apollo Angular to OctoMesh Tenant API
-- **Styling**: Tailwind CSS 4 + Kendo Default Theme
+- **Styling**: design of the Meshmakers apps (Refinery Studio, Meshmakers App): Kendo Material theme
+  (`@progress/kendo-theme-material`) + Octo tokens and component styles of `@meshmakers/octo-ui` (`styles/_index.scss`
+  via `stylePreprocessorOptions.includePaths`); `ThemeService` follows the OS preference until the user toggles the
+  theme (stored in localStorage) and always sets `data-theme="light"|"dark"` (the Octo token defaults alone are dark);
+  Tailwind CSS 4 for layout utilities. Never add own `--kendo-color-*` values in `styles.scss`; use the `--theme-*` and
+  `--octo-*` tokens.
+- **Sign-in tenant**: `applyClientConfig` passes `tenantId` of `config.json` as `defaultTenantId`, so the login sends
+  `acr_values=tenant:<tenantId>` and skips the tenant discovery
 - **i18n**: `@ngx-translate/core` with JSON translation files
 - **Deployment**: nginx Docker container, Helm charts for Kubernetes
 - **Construction Kit & Blueprints**: example CK model at `src/CustomAppCkModel/`, example blueprint at `src/blueprints/CustomApp/`
@@ -120,7 +132,10 @@ Runtime config loaded from `/assets/config.json`. In Docker, environment variabl
 4. Import generated services in your components
 
 `codegen.yml` covers only `src/app/graphQL/*.graphql`; those queries must work on a fresh tenant (System CKs + Basic).
-`npm run codegen:check` (CI) validates them in memory against the committed `graphql/ci.schema.graphql`;
+Generated types and services carry the suffix `Dto` (`typesSuffix`: `GetAssetsQueryDto`, `GetAssetsDtoGQL`).
+`npm run codegen:check` validates them in memory against the first schema that exists: the argument, `OCTO_GRAPHQL_SCHEMA`,
+the local `schema.json`, a committed `graphql/ci.schema.json` (a partner's own model, introspection JSON), the committed
+`graphql/ci.schema.graphql` (fresh tenant, the template's CI);
 `npm run test:codegen` tests that check. The optional sample (items table on the home page) lives in `src/app/sample/`:
 its query needs the sample CK model, has its own `codegen.sample.yml` (`npm run codegen:sample`) and is switched on
 with `SAMPLE_ITEMS_ENABLED` in `src/app/sample/sample-items.config.ts` (default `false`).
@@ -161,6 +176,8 @@ Edit `src/app/services/my-command-settings.service.ts` to add/modify navigation 
 - Translation files in `src/assets/i18n/{lang}.json`
 - Use `translate` pipe in templates: `{{ 'APP.TITLE' | translate }}`
 - Add new languages: create JSON file + add to `config.json` supportedLanguages + add flag to `styles.scss`
+  (init does all three for its `--lang`/`--extra-langs`)
+- `de-AT.json` must keep exactly the keys of `en-GB.json` (`src/app/translations.spec.ts`)
 
 ### Construction Kit & Blueprints
 - CK model sources: `src/CustomAppCkModel/ConstructionKit/` (`ckModel.yaml`, `types/`, `attributes/`, `enums/`)

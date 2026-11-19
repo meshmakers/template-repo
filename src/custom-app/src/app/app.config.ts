@@ -28,6 +28,7 @@ import { provideApollo } from 'apollo-angular';
 import { HttpLink } from 'apollo-angular/http';
 import { Observable } from 'rxjs';
 import { routes } from './app.routes';
+import { applyClientConfig } from './config/apply-client-config';
 import { defaultAuthorizeOptions } from './config/defaultAuthorizeOptions';
 import { defaultOctoServiceOptions } from './config/defaultOctoServiceOptions';
 import { AppTitleService } from './services/app-title.service';
@@ -54,14 +55,7 @@ async function initServices(): Promise<void> {
 
   languageService.initialize(langConfig);
 
-  defaultAuthorizeOptions.issuer = clientConfig.issuer;
-  defaultAuthorizeOptions.clientId = clientConfig.clientId;
-  defaultAuthorizeOptions.scope = clientConfig.scope;
-  // The authorize interceptor sends the access token only to these service URIs (prefix match).
-  defaultAuthorizeOptions.wellKnownServiceUris = [
-    clientConfig.apiServices,
-    clientConfig.assetServices,
-  ].filter((uri, index, all) => !!uri && all.indexOf(uri) === index);
+  applyClientConfig(defaultAuthorizeOptions, clientConfig);
 
   defaultOctoServiceOptions.assetServices = clientConfig.assetServices;
 

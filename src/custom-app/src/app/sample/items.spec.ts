@@ -1,11 +1,11 @@
-import { GetItemsQuery } from './graphQL/getItems.generated';
+import { GetItemsQueryDto } from './graphQL/getItems.generated';
 import { deriveViewState, ItemRow, mapItems, statusLabel } from './items';
 
 type GqlItems = NonNullable<
-  NonNullable<NonNullable<GetItemsQuery['runtime']>['customAppItem']>['items']
+  NonNullable<NonNullable<GetItemsQueryDto['runtime']>['customAppItem']>['items']
 >;
 
-function result(items: GqlItems): GetItemsQuery {
+function result(items: GqlItems): GetItemsQueryDto {
   return { runtime: { customAppItem: { totalCount: items.length, items } } };
 }
 

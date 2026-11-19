@@ -566,3 +566,25 @@ Describe "Scripts that write into the tenant print the target first" {
         $r.Writes | Should -BeNullOrEmpty
     }
 }
+
+Describe "om_setupIdentityService_local.ps1 client id" {
+    It "registers the client given with -ClientId and adds the scopes to it" {
+        $r = Invoke-TenantScript -Script "om_setupIdentityService_local.ps1" -Arguments @("-TenantId", "test-ordi", "-ClientId", "ordi-frontend")
+        $r.ExitCode | Should -Be 0 -Because $r.Output
+        ($r.Calls -match '^octo-cli -c AddAuthorizationCodeClient .*--clientId ordi-frontend ') | Should -HaveCount 1
+        ($r.Calls -match '^octo-cli -c AddScopeToClient --clientId ordi-frontend ') | Should -HaveCount 2
+    }
+
+    It "registers the template's debug client by default" {
+        $r = Invoke-TenantScript -Script "om_setupIdentityService_local.ps1" -Arguments @("-TenantId", "test-ordi")
+        $r.ExitCode | Should -Be 0 -Because $r.Output
+        ($r.Calls -match '^octo-cli -c AddAuthorizationCodeClient .*--clientId custom-app-frontend-debug ') | Should -HaveCount 1
+    }
+
+    It "refuses an option-like client id before any write" {
+        $r = Invoke-TenantScript -Script "om_setupIdentityService_local.ps1" -Arguments @("-TenantId", "test-ordi", "-ClientId", "--name")
+        $r.ExitCode | Should -Not -Be 0
+        $r.Output | Should -Match "Invalid client id"
+        $r.Writes | Should -BeNullOrEmpty
+    }
+}
