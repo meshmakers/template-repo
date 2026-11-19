@@ -50,27 +50,64 @@ No Duende or AutoMapper licence is needed with OctoMesh 3.5.23 or newer.
 
 ### 1. Set up the tenant
 
-Log in with octo-cli as an administrator of the **system tenant** (`octosystem`), because the scripts create the
-tenant below it; `Config` and `LogIn` do this for the context of the stack (see its README). Then run the scripts
-from the `scripts` folder:
+`scripts/om_initialize_tenant.ps1` imports what the app needs into a tenant: the public Basic Construction Kit, the
+own model of the app (`src/<App>CkModel`, compiled with `octo-ckc`, see
+[Start creating libraries](https://docs.meshmakers.cloud/docs/technologyGuide/constructionKits/createConstructionKitLibrary#install-the-compiler))
+and, unless you pass `-SkipSampleData`, the sample data of the blueprint (`src/blueprints/<App>/seed-data/entities.yaml`,
+one item). All scripts take `-TenantId` (default: the kebab-case name of your app, `custom-app` in the template) and
+print the octo-cli context, its service URLs and the tenant before they write anything.
+
+**By default the script never deletes or creates a tenant.** Only `-Recreate` does, and only on a local stack: the
+scripts check every service URL of the active octo-cli context and refuse (non-zero exit, nothing changed) unless all
+of them are `localhost`, a loopback address such as `127.0.0.1`, or a host below `127-0-0-1.nip.io`. The name of the
+context does not count. `om_delete_tenants.ps1` follows the same rule and also needs `-Force`.
+
+#### Local stack (getting-started)
+
+Log in with octo-cli as an administrator of the **system tenant** (`octosystem`) of your local stack, because
+`-Recreate` creates the tenant below it (`om-login-local.ps1` of getting-started does this). Then run the scripts from
+the `scripts` folder:
 
 ```bash
 cd scripts
-pwsh om_initialize_tenant.ps1            # create the tenant, import the Construction Kits and the sample item
-pwsh om_setupIdentityService_local.ps1  # register the OIDC client of the dev server in the new tenant
+pwsh om_initialize_tenant.ps1 -Recreate  # delete + create the tenant, import the Construction Kits and the sample item
+pwsh om_setupIdentityService_local.ps1   # register the OIDC client of the dev server in the new tenant
 pwsh generate-dev-certs.ps1              # certificate for the https dev server on port 4300
 ```
 
-All scripts take `-TenantId` (default: the kebab-case name of your app, `custom-app` in the template).
-`om_initialize_tenant.ps1` first **deletes** the tenant if it exists (deleting finishes in the background and can
-take a minute or two, the script waits), creates it, provisions your user as its admin, enables communication and
-stream data, imports the public Basic Construction Kit, compiles and imports the own model of the app
-(`src/<App>CkModel`, needs `octo-ckc`, see [Start creating libraries](https://docs.meshmakers.cloud/docs/technologyGuide/constructionKits/createConstructionKitLibrary#install-the-compiler))
-and the sample data of the blueprint (`src/blueprints/<App>/seed-data/entities.yaml`, one item). Run
-`om_setupIdentityService_local.ps1` **after** it: the client belongs to the tenant, so initializing the tenant
-again deletes it.
+`-Recreate` deletes the tenant if it exists (deleting finishes in the background and can take a minute or two, the
+script waits), creates it, provisions your user as its admin and enables communication and stream data before the
+imports. Run `om_setupIdentityService_local.ps1` **after** it: the client belongs to the tenant, so recreating the
+tenant deletes it. To import again into the existing local tenant, run the script without `-Recreate`.
 
-### 2. Configure
+#### Hosted tenant (partner)
+
+On a hosted OctoMesh (for example a staging cluster run by Meshmakers) the tenant already exists and you log in as an
+administrator of **that tenant**; you need no system-tenant rights. The tenant user needs the role
+`DataModelManagement` for the Construction Kit imports. Point octo-cli at the stack and your tenant, log in, and run
+the script **without** `-Recreate`:
+
+```bash
+octo-cli -c Config -isu <identity-url> -asu <asset-url> -tid <your-tenant>
+octo-cli -c LogIn -i
+cd scripts
+pwsh om_initialize_tenant.ps1 -TenantId <your-tenant>                   # Construction Kits + sample item
+pwsh om_initialize_tenant.ps1 -TenantId <your-tenant> -SkipSampleData   # Construction Kits only
+```
+
+Nothing is deleted or created, and communication and stream data are left as they are. The sample data is imported
+as new entities: a second run fails on the existing `Example Item`, so pass `-SkipSampleData` then.
+
+With an AI agent and the OctoMesh MCP server of your tenant you can do the same without the script:
+
+| Step | Script (octo-cli) | MCP tool |
+|---|---|---|
+| Basic Construction Kit | `octo-cli -c ImportFromCatalog -cn PublicGitHubCatalog -m Basic-2.5.0 -w` | `import_ck_from_catalog` (catalog `PublicGitHubCatalog`, model `Basic-2.5.0`) |
+| Model of the app | `octo-ckc -c Compile …`, then `octo-cli -c ImportCk -f <compiled ck yaml> -w` | compile with `octo-ckc`, then `prepare_file_upload` and `import_ck_model` with the compiled `ck-<model>-<major>.yaml` |
+| Sample data (optional) | `octo-cli -c ImportRt -f src/blueprints/<App>/seed-data/entities.yaml -w` | `prepare_file_upload` and `import_runtime_model` (strategy `InsertOnly`) with `entities.yaml` |
+
+`om_setupIdentityService_local.ps1` works on a hosted tenant too, when you run the dev server on
+`https://localhost:4300/` against it; it only adds the OIDC client to the tenant.
 
 Edit `src/<your-app>/src/assets/config.json`. For the getting-started stack:
 
@@ -139,8 +176,8 @@ the GraphQL schema of your tenant from `src/<app>/schema.json`:
 template's own query (`getMaintenanceMode.graphql`) uses only System types, and the sample query is not part of
 `npm run codegen`. Put your own queries next to it in `src/<app>/src/app/graphQL/`.
 
-**With the sample model**: import the sample CK model of this template into your tenant (on the local stack the
-tenant script does that, see [Set up the tenant](#1-set-up-the-tenant)), then set `SAMPLE_ITEMS_ENABLED` to `true`
+**With the sample model**: import the sample CK model of this template into your tenant (the tenant script does
+that, see [Set up the tenant](#1-set-up-the-tenant)), then set `SAMPLE_ITEMS_ENABLED` to `true`
 in `src/<app>/src/app/sample/sample-items.config.ts`. The generated code of the sample query is committed, so that
 is the only step. Only when you change the sample query, export the schema again and run `npm run codegen:sample`
 (config `codegen.sample.yml`).

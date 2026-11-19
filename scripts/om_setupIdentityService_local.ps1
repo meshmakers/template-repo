@@ -15,7 +15,10 @@ Write-Host "=== Setting up Identity Service for local development ===" -Foregrou
 Write-Host "Tenant: $TenantId, client ID: $clientId, client URI: $clientUri"
 Write-Host ""
 
-Set-OctoCliTenant -TenantId $TenantId
+Assert-OctoTenantId -TenantId $TenantId
+$context = Get-OctoCliContext
+Write-OctoTarget -Context $context -TenantId $TenantId
+Set-OctoCliTenant -TenantId $TenantId -Context $context
 
 # Register the debug frontend client
 Invoke-OctoCli -CliArgs @("-c", "AddAuthorizationCodeClient", "--clientUri", $clientUri, "--clientId", $clientId, "--redirectUri", $redirectUri, "--name", $clientName)

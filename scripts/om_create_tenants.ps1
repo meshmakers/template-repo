@@ -3,6 +3,8 @@ param (
 )
 # Creates the tenant of the app below the system tenant, provisions the current user as its admin and enables
 # communication and stream data. Leaves the octo-cli context on the new tenant.
+# Only on a local stack (localhost, 127.0.0.1, *.127-0-0-1.nip.io); refused before any write for every other
+# octo-cli context. On a hosted tenant use om_initialize_tenant.ps1 without -Recreate.
 . "$PSScriptRoot/om_common.ps1"
 
 function Invoke-Retry {
@@ -17,12 +19,16 @@ function Invoke-Retry {
             Start-Sleep -Seconds 10
         }
     }
-    throw "$Description failed after $Attempts attempts. If the tenant exists already, delete it first (om_delete_tenants.ps1)."
+    throw "$Description failed after $Attempts attempts. If the tenant exists already, delete it first (om_delete_tenants.ps1 -Force)."
 }
 
-Set-OctoCliTenant -TenantId $SystemTenantId
+Assert-OctoTenantId -TenantId $TenantId -NotSystem
+$context = Get-OctoCliContext
+Assert-OctoLocalContext -Context $context -Action "create the tenant '$TenantId'"
+Write-OctoTarget -Context $context -TenantId $TenantId
+Set-OctoCliTenant -TenantId $SystemTenantId -Context $context
 Invoke-Retry -Description "Creating the tenant '$TenantId'" -CliArgs @("-c", "Create", "-tid", $TenantId, "-db", $TenantId, "-np")
 Invoke-Retry -Description "Provisioning the current user as admin of '$TenantId'" -CliArgs @("-c", "ProvisionCurrentUser", "-ttid", $TenantId)
-Set-OctoCliTenant -TenantId $TenantId
+Set-OctoCliTenant -TenantId $TenantId -Context $context
 Invoke-OctoCli -CliArgs @("-c", "EnableCommunication")
 Invoke-OctoCli -CliArgs @("-c", "EnableStreamData")

@@ -192,12 +192,23 @@ src/custom-app/
 ## Scripts (PowerShell)
 
 ```bash
-# Initialize tenant (delete + create + import CK + import RT)
-cd scripts && pwsh om_initialize_tenant.ps1
+# Import CK + sample data into an existing tenant (hosted or local); never deletes or creates
+cd scripts && pwsh om_initialize_tenant.ps1 -TenantId <tenant> [-SkipSampleData]
+
+# Local stack only: delete + create + import CK + import RT
+cd scripts && pwsh om_initialize_tenant.ps1 -Recreate
 
 # Register OIDC client for local development
 cd scripts && pwsh om_setupIdentityService_local.ps1
+
+# Tests of the scripts (Pester 5, fake octo-cli, no OctoMesh needed)
+pwsh scripts/tests/Invoke-ScriptTests.ps1
 ```
+
+Invariant: no script deletes or creates a tenant unless every service URL of the active octo-cli context is local
+(`localhost`, loopback IP, `*.127-0-0-1.nip.io`) and the user passed `-Recreate` (`om_delete_tenants.ps1`: `-Force`).
+Every refusal happens before the first octo-cli write, including `Config`. Changes to the tenant scripts need a test in
+`scripts/tests/TenantScripts.Tests.ps1`.
 
 ## Dependency pins
 

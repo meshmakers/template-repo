@@ -1,4 +1,23 @@
 steps:
+  # Tenant scripts (scripts/om_*.ps1): no script deletes or creates a tenant outside a local stack or without an
+  # explicit switch (AB#9363). Pester against a fake octo-cli; no OctoMesh is contacted.
+  - task: PowerShell@2
+    displayName: 'Test tenant scripts (Pester, fake octo-cli)'
+    inputs:
+      targetType: filePath
+      filePath: $(System.DefaultWorkingDirectory)/scripts/tests/Invoke-ScriptTests.ps1
+      arguments: -ResultPath $(System.DefaultWorkingDirectory)/scripts/tests/test-results/TESTS-pester.xml
+      pwsh: true
+
+  - task: PublishTestResults@2
+    displayName: 'Publish tenant script test results'
+    condition: succeededOrFailed()
+    inputs:
+      testResultsFormat: 'NUnit'
+      testResultsFiles: 'scripts/tests/test-results/TESTS-pester.xml'
+      searchFolder: $(System.DefaultWorkingDirectory)
+      testRunTitle: 'Tenant scripts - Pester'
+
   - task: CmdLine@2
     displayName: 'Replace file: references with registry versions'
     inputs:

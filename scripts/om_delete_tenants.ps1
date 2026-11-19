@@ -1,7 +1,18 @@
 param (
-    [string]$TenantId = "custom-app"
+    [string]$TenantId = "custom-app",
+    # Required: deleting removes the tenant with all its data.
+    [switch]$Force
 )
 # Deletes the tenant of the app (all its data). A tenant that does not exist is not an error.
+# Only on a local stack (localhost, 127.0.0.1, *.127-0-0-1.nip.io) and only with -Force; refused before any write
+# for every other octo-cli context.
 . "$PSScriptRoot/om_common.ps1"
-Set-OctoCliTenant -TenantId $SystemTenantId
+Assert-OctoTenantId -TenantId $TenantId -NotSystem
+if (-not $Force) {
+    throw "Refusing to delete the tenant '$TenantId' without -Force: deleting removes the tenant and all its data (local stack only). Nothing was changed."
+}
+$context = Get-OctoCliContext
+Assert-OctoLocalContext -Context $context -Action "delete the tenant '$TenantId'"
+Write-OctoTarget -Context $context -TenantId $TenantId
+Set-OctoCliTenant -TenantId $SystemTenantId -Context $context
 Invoke-OctoCli -CliArgs @("-c", "Delete", "-tid", $TenantId, "-y") -IgnoreFailure
