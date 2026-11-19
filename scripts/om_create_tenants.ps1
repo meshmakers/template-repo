@@ -10,14 +10,15 @@ param (
 function Invoke-Retry {
     # Tenant creation and deletion finish in the background (a create right after a delete can still answer
     # "already in use", the identity setup of a new tenant can still answer "forbidden"), so repeat for a while.
-    # A rejected login (and, with -StopOnForbidden, a missing right) stops at once with octo-cli's own message.
+    # A rejected login (exit code 252, an expired session, invalid_grant, 401; with -StopOnForbidden also a missing
+    # right, 403) stops at once with octo-cli's own message.
     param([string]$Description, [string[]]$CliArgs, [int]$Attempts = 20, [switch]$StopOnForbidden)
     for ($attempt = 1; $attempt -le $Attempts; $attempt++) {
         $lines = @(& octo-cli @CliArgs 2>&1 | ForEach-Object { "$_" })
         $exitCode = $LASTEXITCODE
         $lines | ForEach-Object { Write-Host $_ }
         if ($exitCode -eq 0) { return }
-        if (Test-OctoAuthFailure -Lines $lines -IncludeForbidden:$StopOnForbidden) {
+        if (Test-OctoAuthFailure -Lines $lines -ExitCode $exitCode -IncludeForbidden:$StopOnForbidden) {
             throw ("$Description failed (exit code $exitCode)$(Get-OctoCliReason -Lines $lines). Not retried: " +
                 "this step needs a login of the system tenant '$SystemTenantId' with the right to manage tenants.")
         }
