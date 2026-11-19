@@ -112,6 +112,19 @@ function Confirm-OctoContextUnchanged {
     Assert-OctoLocalContext -Context $now -Action $Action
 }
 
+function Test-OctoTenantExists {
+    # True when the tenant is listed by `GetTenants` of the named context, which must point at the system tenant.
+    # Throws when the list cannot be read, so a failure never counts as "does not exist".
+    param([Parameter(Mandatory)][string]$TenantId, [Parameter(Mandatory)][string]$ContextName)
+    $lines = octo-cli -c GetTenants --context $ContextName
+    if ($LASTEXITCODE -ne 0) { throw "octo-cli GetTenants failed (exit code $LASTEXITCODE). Nothing was deleted." }
+    # octo-cli prints log lines before the JSON list, only keep the output from the opening '[' onward.
+    $start = ($lines | Select-String -Pattern '^\s*\[' | Select-Object -First 1).LineNumber
+    if (-not $start) { throw "Could not read the tenant list of octo-cli GetTenants. Nothing was deleted." }
+    $tenants = (($lines | Select-Object -Skip ($start - 1)) -join "`n") | ConvertFrom-Json
+    return [bool](@($tenants) | Where-Object { $_.TenantId -ieq $TenantId })
+}
+
 function Write-OctoTarget {
     # Prints where the script is about to write. Call it before the first write.
     param([Parameter(Mandatory)]$Context, [Parameter(Mandatory)][string]$TenantId)

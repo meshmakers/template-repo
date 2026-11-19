@@ -60,7 +60,12 @@ print the octo-cli context, its service URLs and the tenant before they write an
 **By default the script never deletes or creates a tenant.** Only `-Recreate` does, and only on a local stack: the
 scripts check every service URL of the active octo-cli context and refuse (non-zero exit, nothing changed) unless all
 of them are `localhost`, a loopback address such as `127.0.0.1`, or a host below `127-0-0-1.nip.io`. The name of the
-context does not count. `om_delete_tenants.ps1` follows the same rule and also needs `-Force`.
+context does not count. `om_delete_tenants.ps1` follows the same rule and also needs `-Force`; it switches off the
+capabilities of the tenant (Communication, Stream Data, …) before it deletes it, skips a tenant that does not exist and
+stops when the delete fails.
+
+The scripts work on the **active** octo-cli context and point it at the tenant (`octo-cli -c Config`). `--context` and
+`OCTO_CLI_CONTEXT` do not select another context for them: with `OCTO_CLI_CONTEXT` set they stop before the first write.
 
 #### Local stack (getting-started)
 

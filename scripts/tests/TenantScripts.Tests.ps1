@@ -45,6 +45,22 @@ if ($Tool -eq 'octo-cli' -and $command -eq 'ListContexts') {
     Get-Content -Raw -Path $file
     exit 0
 }
+if ($Tool -eq 'octo-cli' -and $command -eq 'GetTenants') {
+    if ($env:FAKE_OCTO_GETTENANTS_EXIT) { Write-Output 'error: forbidden'; exit [int]$env:FAKE_OCTO_GETTENANTS_EXIT }
+    Write-Output 'Getting tenants (fake)'
+    $ids = @($env:FAKE_OCTO_TENANTS -split ',' | Where-Object { $_ })
+    ConvertTo-Json -InputObject @($ids | ForEach-Object { [ordered]@{ Database = $_; TenantId = $_; ParentTenantId = $null } })
+    exit 0
+}
+if ($Tool -eq 'octo-cli' -and $command -eq 'Config' -and $env:OCTO_CLI_CONTEXT) {
+    # Like the real octo-cli: Config refuses a context override (exit 251) and changes nothing.
+    Write-Output "'Config' changes a stored context and therefore cannot be combined with --context."
+    exit 251
+}
+if ($Tool -eq 'octo-cli' -and $command -eq 'Delete' -and $env:FAKE_OCTO_DELETE_EXIT) {
+    Write-Output 'Conflict: capabilities are still enabled'
+    exit [int]$env:FAKE_OCTO_DELETE_EXIT
+}
 if ($Tool -eq 'octo-ckc' -and $command -eq 'Compile') {
     $out = $Rest[[array]::IndexOf($Rest, '-o') + 1]
     New-Item -ItemType Directory -Path $out -Force | Out-Null
@@ -88,7 +104,11 @@ exit 0
             [string[]]$Arguments = @(),
             [object[]]$Contexts = @((New-Context)),
             [object[]]$ContextsAfterConfig,
-            [int]$ListContextsExit = 0
+            [int]$ListContextsExit = 0,
+            # Tenants GetTenants lists (default: the tenant the tests use exists).
+            [string[]]$Tenants = @("my-app", "test-ordi"),
+            [int]$GetTenantsExit = 0,
+            [int]$DeleteExit = 0
         )
         $id = [guid]::NewGuid().ToString("N")
         $contextsFile = Join-Path $TestDrive "contexts-$id.json"
@@ -106,6 +126,9 @@ exit 0
         $env:FAKE_OCTO_CONTEXTS = $contextsFile
         $env:FAKE_OCTO_LISTCONTEXTS_EXIT = if ($ListContextsExit) { "$ListContextsExit" } else { $null }
         $env:FAKE_OCTO_CONTEXTS_AFTER_CONFIG = $afterFile
+        $env:FAKE_OCTO_TENANTS = ($Tenants -join ',')
+        $env:FAKE_OCTO_GETTENANTS_EXIT = if ($GetTenantsExit) { "$GetTenantsExit" } else { $null }
+        $env:FAKE_OCTO_DELETE_EXIT = if ($DeleteExit) { "$DeleteExit" } else { $null }
         try {
             $output = & pwsh -NoProfile -NonInteractive -File (Join-Path $script:Repo "scripts" $Script) @Arguments 2>&1 |
                 ForEach-Object { "$_" }
@@ -117,6 +140,9 @@ exit 0
             $env:FAKE_OCTO_CONTEXTS = $null
             $env:FAKE_OCTO_LISTCONTEXTS_EXIT = $null
             $env:FAKE_OCTO_CONTEXTS_AFTER_CONFIG = $null
+            $env:FAKE_OCTO_TENANTS = $null
+            $env:FAKE_OCTO_GETTENANTS_EXIT = $null
+            $env:FAKE_OCTO_DELETE_EXIT = $null
         }
         $calls = @(Get-Content -Path $log | Where-Object { $_ })
         [pscustomobject]@{
@@ -239,18 +265,44 @@ Describe "om_initialize_tenant.ps1" {
         It "deletes and recreates the tenant on the local getting-started stack" {
             $r = Invoke-TenantScript -Script "om_initialize_tenant.ps1" -Arguments @("-TenantId", "my-app", "-Recreate")
             $r.ExitCode | Should -Be 0 -Because $r.Output
-            $delete = [array]::IndexOf($r.Calls, "octo-cli -c Delete -tid my-app -y --context local")
+            $delete = [array]::IndexOf($r.Calls, "octo-cli -c Delete -tid my-app --disable-features -y --context local")
             $create = [array]::IndexOf($r.Calls, "octo-cli -c Create -tid my-app -db my-app -np --context local")
             $delete | Should -BeGreaterOrEqual 0 -Because ($r.Calls -join "`n")
             $create | Should -BeGreaterThan $delete
             ($r.Calls -match '^octo-cli -c ImportRt -f ') | Should -HaveCount 1
         }
 
+        It "creates without a delete when the tenant does not exist yet" {
+            $r = Invoke-TenantScript -Script "om_initialize_tenant.ps1" -Arguments @("-TenantId", "my-app", "-Recreate") -Tenants @()
+            $r.ExitCode | Should -Be 0 -Because $r.Output
+            $r.Calls | Should -Not -Match ' -c Delete( |$)'
+            $r.Calls | Should -Contain "octo-cli -c Create -tid my-app -db my-app -np --context local"
+        }
+
+        It "stops before any tenant write when OCTO_CLI_CONTEXT is set (<Mode>)" -ForEach @(
+            @{ Mode = "-Recreate" }
+            @{ Mode = "default" }
+        ) {
+            $arguments = @("-TenantId", "my-app")
+            if ($Mode -eq "-Recreate") { $arguments += "-Recreate" }
+            $env:OCTO_CLI_CONTEXT = "local"
+            try { $r = Invoke-TenantScript -Script "om_initialize_tenant.ps1" -Arguments $arguments }
+            finally { $env:OCTO_CLI_CONTEXT = $null }
+            $r.ExitCode | Should -Not -Be 0
+            $r.Calls | Should -Not -Match ' -c (Delete|Create|ProvisionCurrentUser|ImportCk|ImportRt|ImportFromCatalog|GetTenants)( |$)'
+        }
+
+        It "stops before the create when the delete fails" {
+            $r = Invoke-TenantScript -Script "om_initialize_tenant.ps1" -Arguments @("-TenantId", "my-app", "-Recreate") -DeleteExit 1
+            $r.ExitCode | Should -Not -Be 0
+            $r.Calls | Should -Not -Match ' -c (Create|ImportCk|ImportRt|ImportFromCatalog)( |$)'
+        }
+
         It "works on an OctoMesh developer stack (localhost)" {
             $dev = New-Context -Name "dev" -Identity "https://localhost:5003/" -Asset "https://localhost:5001/"
             $r = Invoke-TenantScript -Script "om_initialize_tenant.ps1" -Arguments @("-TenantId", "my-app", "-Recreate") -Contexts @($dev)
             $r.ExitCode | Should -Be 0 -Because $r.Output
-            $r.Calls | Should -Contain "octo-cli -c Delete -tid my-app -y --context dev"
+            $r.Calls | Should -Contain "octo-cli -c Delete -tid my-app --disable-features -y --context dev"
         }
 
         It "refuses when the active context is switched between the check and the delete (<Case>)" -ForEach @(
@@ -354,8 +406,37 @@ Describe "om_delete_tenants.ps1" {
     It "deletes on a local stack with -Force" {
         $r = Invoke-TenantScript -Script "om_delete_tenants.ps1" -Arguments @("-TenantId", "my-app", "-Force")
         $r.ExitCode | Should -Be 0 -Because $r.Output
-        $r.Calls | Should -Contain "octo-cli -c Delete -tid my-app -y --context local"
+        $r.Calls | Should -Contain "octo-cli -c Delete -tid my-app --disable-features -y --context local"
         $r.Output | Should -Match "Target: context 'local', identity https://identity\.127-0-0-1\.nip\.io/"
+    }
+
+    It "reads the tenant list through the checked context before it deletes" {
+        $r = Invoke-TenantScript -Script "om_delete_tenants.ps1" -Arguments @("-TenantId", "My-App", "-Force")
+        $r.ExitCode | Should -Be 0 -Because $r.Output
+        $list = [array]::IndexOf($r.Calls, "octo-cli -c GetTenants --context local")
+        $delete = [array]::IndexOf($r.Calls, "octo-cli -c Delete -tid My-App --disable-features -y --context local")
+        $list | Should -BeGreaterOrEqual 0 -Because ($r.Calls -join "`n")
+        $delete | Should -BeGreaterThan $list
+    }
+
+    It "skips a tenant that does not exist without deleting anything" {
+        $r = Invoke-TenantScript -Script "om_delete_tenants.ps1" -Arguments @("-TenantId", "my-app", "-Force") -Tenants @("other-app")
+        $r.ExitCode | Should -Be 0 -Because $r.Output
+        $r.Calls | Should -Not -Match ' -c Delete( |$)'
+        $r.Output | Should -Match 'does not exist'
+    }
+
+    It "fails without deleting when the tenant list cannot be read" {
+        $r = Invoke-TenantScript -Script "om_delete_tenants.ps1" -Arguments @("-TenantId", "my-app", "-Force") -GetTenantsExit 1
+        $r.ExitCode | Should -Not -Be 0
+        $r.Calls | Should -Not -Match ' -c Delete( |$)'
+        $r.Output | Should -Match 'GetTenants failed'
+    }
+
+    It "fails when the delete fails instead of reporting success" {
+        $r = Invoke-TenantScript -Script "om_delete_tenants.ps1" -Arguments @("-TenantId", "my-app", "-Force") -DeleteExit 1
+        $r.ExitCode | Should -Not -Be 0
+        $r.Output | Should -Match '(?s)-c Delete -tid my-app.*failed \(exit code 1\)'
     }
 
     It "refuses a non-local context even with -Force" {
