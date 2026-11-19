@@ -12,10 +12,33 @@ cd my-app
 ./init.sh
 ```
 
-The init script will ask for:
+On a terminal the init script asks for:
 - **App Name** (e.g., `Acme`) - used for naming throughout the project
+- **Tenant ID** - the OctoMesh tenant the app and the scripts work in (default: the kebab-case app name, e.g. `acme`)
 - **Default Language** (default: `en-GB`)
 - **Additional Languages** (optional, comma-separated)
+
+**Without prompts** (an AI agent, CI, a hosted tenant whose id is not the app name), pass the values as options:
+
+```bash
+./init.sh --app-name Inspections --tenant-id test-ordi --lang en-GB --extra-langs de-AT --yes
+```
+
+| Option | Environment variable | Meaning |
+|---|---|---|
+| `--app-name <Name>` | `INIT_APP_NAME` | App name in PascalCase (required) |
+| `--tenant-id <id>` | `INIT_TENANT_ID` | Tenant of the app (default: the kebab-case app name; the script prints the value it uses) |
+| `--lang <code>` | `INIT_DEFAULT_LANG` | Default language (default: `en-GB`) |
+| `--extra-langs <a,b>` | `INIT_EXTRA_LANGS` | Additional languages (default: none) |
+| `--yes`, `-y` | `INIT_ASSUME_YES=1` | No confirmation question |
+| | `INIT_INTERACTIVE=1` or `0` | Ask (`1`) or never ask (`0`); default: ask only when stdin is a terminal |
+
+Without a terminal the script never asks: `--app-name` and `--yes` are required, the rest has defaults. Invalid
+input (an app name that is not PascalCase, an invalid tenant id or language code, a missing required option) stops
+it with exit code 2 before it changes any file. `./init.sh --help` lists all options. The tenant id goes into
+`src/<app>/src/assets/config.json`, the Helm values (`config.tenantId`) and the default `-TenantId` of every script in
+`scripts/`. On Windows without bash, `init.ps1` takes the same values (`-AppName`, `-TenantId`, `-Lang`,
+`-ExtraLangs`, `-Yes`).
 
 ### 2. Install & Run
 
@@ -29,13 +52,14 @@ See **Local Development** below for the tenant, the configuration and the Teleri
 
 ## Prerequisites
 
-- **Node.js 24.15** (see `.nvmrc`), npm comes with it
+- **The Node.js version in `.nvmrc`**, npm comes with it; with [nvm](https://github.com/nvm-sh/nvm) run `nvm use`
+  (or `nvm install`) in the repository root
 - **A running OctoMesh stack.** The easiest is the local kind stack of
   [meshmakers/getting-started](https://github.com/meshmakers/getting-started) (OctoMesh 3.5.23 or newer);
   its services are reached at `https://identity.127-0-0-1.nip.io`, `https://assets.127-0-0-1.nip.io` and so on
 - **octo-cli 3.5.0 or newer**, logged in to that stack (`om-login-local.ps1` of getting-started does this)
 - **PowerShell 7.4+** for the `scripts/om_*.ps1` helpers
-- **A Telerik licence for Kendo UI for Angular.** The app uses Kendo UI, a commercial component library, and
+- **Your own Telerik licence for Kendo UI for Angular.** The app uses Kendo UI, a commercial component library, and
   `npm start` and `npm run build:prod` stop without a licence. We do not provide a key. Telerik offers a
   [free 30-day trial](https://www.telerik.com/try/kendo-angular-ui) (no credit card needed); with a trial or a
   purchased licence you download your licence key on the
@@ -54,8 +78,8 @@ No Duende or AutoMapper licence is needed with OctoMesh 3.5.23 or newer.
 own model of the app (`src/<App>CkModel`, compiled with `octo-ckc`, see
 [Start creating libraries](https://docs.meshmakers.cloud/docs/technologyGuide/constructionKits/createConstructionKitLibrary#install-the-compiler))
 and, unless you pass `-SkipSampleData`, the sample data of the blueprint (`src/blueprints/<App>/seed-data/entities.yaml`,
-one item). All scripts take `-TenantId` (default: the kebab-case name of your app, `custom-app` in the template) and
-print the octo-cli context, its service URLs and the tenant before they write anything.
+one item). All scripts take `-TenantId` (default: the tenant id you gave `init.sh`) and print the octo-cli context,
+its service URLs and the tenant before they write anything.
 
 **By default the script never deletes or creates a tenant.** Only `-Recreate` does, and only on a local stack: the
 scripts check every service URL of the active octo-cli context and refuse (non-zero exit, nothing changed) unless all
@@ -64,7 +88,8 @@ context does not count. `om_delete_tenants.ps1` follows the same rule and also n
 capabilities of the tenant (Communication, Stream Data, …) before it deletes it, skips a tenant that does not exist and
 stops when the delete fails. A login without the rights of the system tenant (for example a tenant-admin client of
 a hosted tenant) makes `-Recreate`, `om_delete_tenants.ps1` and `om_create_tenants.ps1` stop at once with octo-cli's
-own reason ("No token for tenant 'octosystem' was issued …"); only transient errors of the create are retried.
+own reason ("No token for tenant 'octosystem' was issued …", an expired session, "Authorization failed", a missing
+role); only transient errors of the create are retried.
 
 The scripts work on the **active** octo-cli context and point it at the tenant (`octo-cli -c Config`). `--context` and
 `OCTO_CLI_CONTEXT` do not select another context for them: with `OCTO_CLI_CONTEXT` set they stop before the first write.
@@ -72,8 +97,9 @@ The scripts work on the **active** octo-cli context and point it at the tenant (
 #### Local stack (getting-started)
 
 Log in with octo-cli as an administrator of the **system tenant** (`octosystem`) of your local stack, because
-`-Recreate` creates the tenant below it (`om-login-local.ps1` of getting-started does this). Then run the scripts from
-the `scripts` folder:
+`-Recreate` creates the tenant below it: `pwsh om-login-local.ps1 -tenantId octosystem` of getting-started does this
+and makes that context the active one (without `-tenantId` it logs in to `meshtest`). Then run the scripts from the
+`scripts` folder:
 
 ```bash
 cd scripts
@@ -91,8 +117,9 @@ tenant deletes it. To import again into the existing local tenant, run the scrip
 
 On a hosted OctoMesh (for example a staging cluster run by Meshmakers) the tenant already exists and you log in as an
 administrator of **that tenant**; you need no system-tenant rights. The tenant user needs the role
-`DataModelManagement` for the Construction Kit imports. Point octo-cli at the stack and your tenant, log in, and run
-the script **without** `-Recreate`:
+`DataModelManagement` for the Construction Kit imports. Initialise the template with the id of that tenant
+(`./init.sh --tenant-id <your-tenant> …`, so the app and the scripts use it), point octo-cli at the stack and your
+tenant, log in, and run the script **without** `-Recreate`:
 
 ```bash
 octo-cli -c Config -isu <identity-url> -asu <asset-url> -tid <your-tenant>
@@ -197,8 +224,6 @@ that schema does not have; `npm run test:codegen` tests the check itself. The pi
 your queries use your own CK model, replace `graphql/ci.schema.graphql` with the SDL of a tenant that has that model
 (the tests in `scripts/codegen-check.test.js` expect that schema without the sample type).
 
-<!-- TODO(verify): the complete run on the getting-started stack (init.sh, the three scripts, npm start, sign-in, tenant data), AB#6775 window -->
-
 ## Project Structure
 
 ```
@@ -211,11 +236,26 @@ your queries use your own CK model, replace `graphql/ci.schema.graphql` with the
 │   ├── charts/custom-app/    — Helm charts for Kubernetes
 │   ├── CustomAppCkModel/     — Example Construction Kit model (ConstructionKit/ + .csproj)
 │   └── blueprints/CustomApp/ — Example blueprint seeding the CK model
-├── scripts/                  — Tenant management scripts
+├── scripts/                  — Tenant management scripts (tests in scripts/tests/)
+│   └── ci/                   — Checks of the template itself (removed by init.sh)
 ├── devops-build/             — Azure DevOps CI/CD pipeline
 ├── CLAUDE.md                 — AI assistant instructions
-└── init.sh                   — Project initialization script
+└── init.sh / init.ps1        — Project initialization scripts (remove themselves)
 ```
+
+### Checks of the template
+
+Before `init.sh` runs, two scripts check the template itself (both are removed by `init.sh`):
+
+- `scripts/ci/check-public-files.sh` fails when a file of this public repository carries an internal work item
+  reference or an open verification marker.
+- `scripts/ci/verify-template.sh` runs the public file check, initialises a copy of the repository without a terminal
+  (`--app-name Inspections --tenant-id test-ordi --lang en-GB --extra-langs de-AT --yes`), checks that no template
+  name is left and that the tenant id is in every place the app and the scripts read it, runs the script tests in
+  the copy and then `npm ci`, the codegen check, lint, unit tests and the production build of the generated app
+  (`--skip-app` stops after the checks of the copy).
+
+`pwsh scripts/tests/Invoke-ScriptTests.ps1` also runs the tests of `init.sh` (`scripts/tests/Init.Tests.ps1`).
 
 ## Construction Kit & Blueprints
 
@@ -262,9 +302,13 @@ the blueprint are your own.
 The image is configured at **start**, not at build: the entrypoint writes the `CONFIG_*` variables into
 `assets/config.json`, so one image serves any OctoMesh installation.
 
+Build from the **repository root** (the Dockerfile copies `src/custom-app/` from there). The build needs your own
+Telerik licence in `TELERIK_LICENSE` (`--build-arg TELERIK_LICENSE` without a value passes it from your shell, so it
+does not end up in the shell history) and installs the published `@meshmakers/*` libraries from the public npm
+registry (build argument `OCTO_LIB_VERSION`, default `latest`).
+
 ```bash
-cd src/custom-app
-docker build --build-arg TELERIK_LICENSE="$TELERIK_LICENSE" -t my-app .
+docker build -f src/custom-app/Dockerfile --build-arg TELERIK_LICENSE -t my-app .
 docker run -p 8080:80 \
   -e CONFIG_TENANT_ID=my-tenant \
   -e CONFIG_API_URL=https://assets.example.com \
@@ -275,8 +319,8 @@ docker run -p 8080:80 \
 ```
 
 Supported variables: `CONFIG_TENANT_ID`, `CONFIG_API_URL`, `CONFIG_AUTHORITY_URL`, `CONFIG_ASSET_SERVICES_URL`,
-`CONFIG_CLIENT_ID` and `CONFIG_SCOPE`.
-<!-- TODO(verify): docker build of the image (needs a Telerik licence and the published @meshmakers libraries); see the story for the build arguments -->
+`CONFIG_CLIENT_ID` and `CONFIG_SCOPE`. The container serves the app on port 80; `http://localhost:8080/assets/config.json`
+shows the configuration it got.
 
 ## Documentation
 

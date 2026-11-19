@@ -122,12 +122,17 @@ function Get-OctoCliReason {
 }
 
 function Test-OctoAuthFailure {
-    # True when octo-cli output says the login was not accepted (invalid_grant, no token, 401) - retrying cannot help.
-    # With -IncludeForbidden also a missing right (403). Leave it off where a 403 can be transient, e.g. the identity
-    # setup of a tenant created a moment ago.
-    param([AllowNull()][AllowEmptyCollection()][string[]]$Lines, [switch]$IncludeForbidden)
-    $pattern = 'invalid_grant|Authentication failed|No token for tenant|Unauthori[sz]ed|\b401\b'
-    if ($IncludeForbidden) { $pattern += '|Forbidden|\b403\b' }
+    # True when octo-cli says the login was not accepted - retrying cannot help: exit code 252 (octo-cli's -4, an
+    # authentication or authorization failure), invalid_grant, no token, 401, "Authentication failed",
+    # "Authorization failed", or a session that "has expired and could not be refreshed" (exit code 251).
+    # With -IncludeForbidden also a missing right: 403, also with a named reason ("requires the role ...") or a problem
+    # code ("(HTTP 403, code ...)"). Leave it off where a 403 can be transient, e.g. the identity setup of a tenant
+    # created a moment ago.
+    param([AllowNull()][AllowEmptyCollection()][string[]]$Lines, [int]$ExitCode = 0, [switch]$IncludeForbidden)
+    if ($ExitCode -eq 252 -or $ExitCode -eq -4) { return $true }
+    $pattern = 'invalid_grant|Authentication failed|Authorization failed|No token for tenant|' +
+        'has expired and could not be refreshed|Unauthori[sz]ed|\b401\b'
+    if ($IncludeForbidden) { $pattern += '|Forbidden|\b403\b|requires the role' }
     return [bool](@($Lines) | Where-Object { $_ -match $pattern })
 }
 

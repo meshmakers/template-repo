@@ -1,6 +1,6 @@
 # Pester 5 tests of the tenant scripts (scripts/om_*.ps1) against a fake octo-cli and octo-ckc.
 #
-# Invariant (AB#9363): no template script deletes or recreates a tenant unless the target is a local stack AND the
+# Invariant: no template script deletes or recreates a tenant unless the target is a local stack AND the
 # user asked for it with an explicit switch; otherwise the script aborts before any write.
 #
 # The scripts run as child processes (pwsh -File), exactly as a developer runs them. A fake octo-cli and octo-ckc
@@ -175,7 +175,7 @@ exit 0
         }
     }
 
-    $script:Remote = New-Context -Name "staging-1" -Identity "https://connect.staging.example.com/" -Asset "https://assets.staging.example.com/"
+    $script:Remote = New-Context -Name "hosted-1" -Identity "https://connect.hosted.example.com/" -Asset "https://assets.hosted.example.com/"
 }
 
 Describe "Recognising a local stack (Test-OctoLocalUrl)" {
@@ -195,7 +195,7 @@ Describe "Recognising a local stack (Test-OctoLocalUrl)" {
     }
 
     It "rejects <Url>" -ForEach @(
-        @{ Url = "https://connect.staging.example.com/" }
+        @{ Url = "https://connect.hosted.example.com/" }
         @{ Url = "https://localhost.evil.example.com/" }
         @{ Url = "https://identity.localhost/" }
         @{ Url = "https://identity.127-0-0-1.nip.io.evil.example.com/" }
@@ -218,7 +218,7 @@ Describe "Validating tenant ids (Assert-OctoTenantId)" {
     BeforeAll { . (Join-Path $script:SourceScripts "om_common.ps1") }
 
     It "accepts <TenantId>" -ForEach @(
-        @{ TenantId = "custom-app" }
+        @{ TenantId = "acme-app" }
         @{ TenantId = "test_ordi2" }
     ) {
         { Assert-OctoTenantId -TenantId $TenantId -NotSystem } | Should -Not -Throw
@@ -275,7 +275,7 @@ Describe "om_initialize_tenant.ps1" {
         It "prints the target context URL and tenant before the first write" {
             $r = Invoke-TenantScript -Script "om_initialize_tenant.ps1" -Arguments @("-TenantId", "test-ordi") -Contexts @($script:Remote)
             $r.ExitCode | Should -Be 0 -Because $r.Output
-            $target = [array]::FindIndex([string[]]$r.Lines, [Predicate[string]] { param($l) $l -match 'Target: context ''staging-1'', identity https://connect\.staging\.example\.com/, asset https://assets\.staging\.example\.com/, tenant ''test-ordi''' })
+            $target = [array]::FindIndex([string[]]$r.Lines, [Predicate[string]] { param($l) $l -match 'Target: context ''hosted-1'', identity https://connect\.hosted\.example\.com/, asset https://assets\.hosted\.example\.com/, tenant ''test-ordi''' })
             $firstWrite = [array]::FindIndex([string[]]$r.Lines, [Predicate[string]] { param($l) $l -like 'FAKE-CALL *' })
             $target | Should -BeGreaterOrEqual 0 -Because $r.Output
             $firstWrite | Should -BeGreaterThan $target
@@ -332,8 +332,8 @@ Describe "om_initialize_tenant.ps1" {
             @{ Case = "the context lost its tenant"; Kind = "tenant" }
         ) {
             $after = switch ($Kind) {
-                "other" { @((New-Context -IsEffective $false), (New-Context -Name "staging-1" -Identity "https://connect.staging.example.com/" -Asset "https://assets.staging.example.com/")) }
-                "remote" { @((New-Context -Name "local" -Identity "https://connect.staging.example.com/" -Asset "https://assets.staging.example.com/")) }
+                "other" { @((New-Context -IsEffective $false), (New-Context -Name "hosted-1" -Identity "https://connect.hosted.example.com/" -Asset "https://assets.hosted.example.com/")) }
+                "remote" { @((New-Context -Name "local" -Identity "https://connect.hosted.example.com/" -Asset "https://assets.hosted.example.com/")) }
                 "tenant" { @((New-Context -Tenant "test-ordi")) }
             }
             $r = Invoke-TenantScript -Script "om_initialize_tenant.ps1" -Arguments @("-TenantId", "my-app", "-Recreate") -ContextsAfterConfig $after
@@ -347,15 +347,15 @@ Describe "om_initialize_tenant.ps1" {
             $r.ExitCode | Should -Not -Be 0
             $r.Writes | Should -BeNullOrEmpty
             $r.Output | Should -Match 'not a local stack'
-            $r.Output | Should -Match 'https://connect\.staging\.example\.com/'
+            $r.Output | Should -Match 'https://connect\.hosted\.example\.com/'
         }
 
         It "abuse case 3: refuses a context named like local that points at <Case>" -ForEach @(
-            @{ Case = "a remote identity and asset URL"; Identity = "https://connect.staging.example.com/"; Asset = "https://assets.staging.example.com/"; Communication = $null }
-            @{ Case = "a local identity but a remote asset URL"; Identity = "https://identity.127-0-0-1.nip.io/"; Asset = "https://assets.staging.example.com/"; Communication = $null }
-            @{ Case = "a remote communication URL"; Identity = "https://identity.127-0-0-1.nip.io/"; Asset = "https://assets.127-0-0-1.nip.io/"; Communication = "https://communication.staging.example.com/" }
+            @{ Case = "a remote identity and asset URL"; Identity = "https://connect.hosted.example.com/"; Asset = "https://assets.hosted.example.com/"; Communication = $null }
+            @{ Case = "a local identity but a remote asset URL"; Identity = "https://identity.127-0-0-1.nip.io/"; Asset = "https://assets.hosted.example.com/"; Communication = $null }
+            @{ Case = "a remote communication URL"; Identity = "https://identity.127-0-0-1.nip.io/"; Asset = "https://assets.127-0-0-1.nip.io/"; Communication = "https://communication.hosted.example.com/" }
             @{ Case = "a look-alike host"; Identity = "https://identity.127-0-0-1.nip.io.evil.example.com/"; Asset = "https://assets.127-0-0-1.nip.io.evil.example.com/"; Communication = $null }
-            @{ Case = "userinfo before a remote host"; Identity = "https://localhost@connect.staging.example.com/"; Asset = "https://localhost@assets.staging.example.com/"; Communication = $null }
+            @{ Case = "userinfo before a remote host"; Identity = "https://localhost@connect.hosted.example.com/"; Asset = "https://localhost@assets.hosted.example.com/"; Communication = $null }
             @{ Case = "no asset URL"; Identity = "https://identity.127-0-0-1.nip.io/"; Asset = $null; Communication = $null }
         ) {
             $ctx = New-Context -Name "local" -Identity $Identity -Asset $Asset -Communication $Communication
@@ -476,7 +476,7 @@ Describe "om_delete_tenants.ps1" {
     }
 
     It "refuses a context named like local that points at a remote URL" {
-        $ctx = New-Context -Name "local" -Identity "https://connect.staging.example.com/" -Asset "https://assets.staging.example.com/"
+        $ctx = New-Context -Name "local" -Identity "https://connect.hosted.example.com/" -Asset "https://assets.hosted.example.com/"
         $r = Invoke-TenantScript -Script "om_delete_tenants.ps1" -Arguments @("-TenantId", "my-app", "-Force") -Contexts @($ctx)
         $r.ExitCode | Should -Not -Be 0
         $r.Writes | Should -BeNullOrEmpty
@@ -506,6 +506,11 @@ Describe "om_create_tenants.ps1" {
         @{ Case = "login not accepted (invalid_grant)"; Exit = 252; Message = "Authentication failed: No token for tenant 'octosystem' was issued (identity error: invalid_grant)."; Expect = "No token for tenant 'octosystem'" }
         @{ Case = "401"; Exit = 1; Message = "Response status code does not indicate success: 401 (Unauthorized)."; Expect = '401' }
         @{ Case = "403"; Exit = 1; Message = "Response status code does not indicate success: 403 (Forbidden)."; Expect = '403' }
+        @{ Case = "expired session (exit 251)"; Exit = 251; Message = "The session for context 'local' has expired and could not be refreshed (its refresh token is no longer valid). Re-authenticate with: octo-cli --context local -c LogIn."; Expect = 'has expired and could not be refreshed' }
+        @{ Case = "authorization failed (exit 252)"; Exit = 252; Message = "Authorization failed: unauthorized_client"; Expect = 'Authorization failed' }
+        @{ Case = "exit 252 with an unknown text"; Exit = 252; Message = "Something went wrong."; Expect = 'Something went wrong' }
+        @{ Case = "403 with a named reason"; Exit = 253; Message = "It requires the role 'TenantManagement'."; Expect = "requires the role 'TenantManagement'" }
+        @{ Case = "403 with a problem code"; Exit = 253; Message = "Forbidden: Not allowed (HTTP 403, code TenantManagementRequired)"; Expect = 'code TenantManagementRequired' }
     ) {
         $r = Invoke-TenantScript -Script "om_create_tenants.ps1" -Arguments @("-TenantId", "my-app") -Fail @{ Command = 'Create'; Times = 0; Exit = $Exit; Message = $Message }
         $r.ExitCode | Should -Not -Be 0
@@ -515,8 +520,8 @@ Describe "om_create_tenants.ps1" {
         $r.Output | Should -Not -Match 'retrying in 10 seconds'
     }
 
-    It "retries a transient failure of the create" {
-        $fail = @{ Command = 'Create'; Times = 1; Exit = 1; Message = "Conflict: Tenant ID 'my-app' is already in use." }
+    It "retries a transient failure of the create (exit <Exit>)" -ForEach @(@{ Exit = 1 }, @{ Exit = 253 }) {
+        $fail = @{ Command = 'Create'; Times = 1; Exit = $Exit; Message = "Conflict: Tenant ID 'my-app' is already in use." }
         $r = Invoke-TenantScript -Script "om_create_tenants.ps1" -Arguments @("-TenantId", "my-app") -Fail $fail
         $r.ExitCode | Should -Be 0 -Because $r.Output
         ($r.Calls -match '^octo-cli -c Create ') | Should -HaveCount 2
@@ -544,7 +549,7 @@ Describe "Scripts that write into the tenant print the target first" {
     ) {
         $r = Invoke-TenantScript -Script $Script -Arguments @("-TenantId", "test-ordi") -Contexts @($script:Remote)
         $r.ExitCode | Should -Be 0 -Because $r.Output
-        $target = [array]::FindIndex([string[]]$r.Lines, [Predicate[string]] { param($l) $l -match "Target: context 'staging-1', identity https://connect\.staging\.example\.com/.*tenant 'test-ordi'" })
+        $target = [array]::FindIndex([string[]]$r.Lines, [Predicate[string]] { param($l) $l -match "Target: context 'hosted-1', identity https://connect\.hosted\.example\.com/.*tenant 'test-ordi'" })
         $firstWrite = [array]::FindIndex([string[]]$r.Lines, [Predicate[string]] { param($l) $l -like 'FAKE-CALL *' })
         $target | Should -BeGreaterOrEqual 0 -Because $r.Output
         $firstWrite | Should -BeGreaterThan $target

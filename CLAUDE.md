@@ -4,7 +4,16 @@
 
 This is a template repository for building OctoMesh Custom Apps. It provides an Angular frontend that connects to OctoMesh backend services (Identity Server, Tenant API, Asset Services) via configuration.
 
-After cloning, run `./init.sh` to customize the template for your project.
+After cloning, run `./init.sh` to customize the template for your project. As an agent (no terminal) pass every value:
+`./init.sh --app-name <PascalCase> --tenant-id <tenant> --lang en-GB --extra-langs de-AT --yes` (or the `INIT_*`
+variables, `./init.sh --help`); it never prompts without a terminal and exits 2 on invalid input before changing a
+file. The tenant id is separate from the app name (default: kebab-case app name) and lands in `config.json`, the Helm
+values and the `-TenantId` default of the scripts.
+
+Template-only checks (removed by `init.sh`): `scripts/ci/check-public-files.sh` (no internal work item references or
+open verification markers in this public repo), `scripts/ci/verify-template.sh` (non-interactive init of a copy,
+result checks, lint/test/build of the generated app) and `scripts/tests/Init.Tests.ps1`. Never put work item IDs into
+files of this repository; they belong in commit messages.
 
 ## Architecture
 
@@ -210,7 +219,8 @@ Invariant: no script deletes or creates a tenant unless every service URL of the
 and `om_initialize_tenant.ps1` creates only with `-Recreate`. Every refusal happens before the first octo-cli write,
 including `Config`; after `Config` the context is read again and delete/create name it with `--context`. Deleting
 checks `GetTenants` first, uses `Delete --disable-features -y` and fails on error; failures pass on octo-cli's last
-output line, and `om_create_tenants.ps1` does not retry a rejected login (invalid_grant, 401) or a 403 of the create. The scripts follow only the active
+output line, and `om_create_tenants.ps1` does not retry a rejected login (exit code 252, an expired session,
+invalid_grant, 401) or a 403 of the create (also with a named missing role or a problem code). The scripts follow only the active
 context: with `OCTO_CLI_CONTEXT` set, `Config` refuses and they stop before the first write. Changes to the tenant scripts need a test in
 `scripts/tests/TenantScripts.Tests.ps1`.
 
