@@ -23,9 +23,14 @@ Turns the template into your app. Without options it asks for every value on the
 Without a terminal (an AI agent, CI) it never asks: pass --app-name and --yes, everything else has a default.
 
 Options (each option also reads the environment variable named next to it; an option wins over the variable):
-  --app-name <Name>        INIT_APP_NAME      App name in PascalCase, e.g. Inspections (required)
+  --app-name <Name>        INIT_APP_NAME      App name in PascalCase (FieldInspections) or kebab-case
+                                              (field-inspections, converted to FieldInspections) (required)
   --tenant-id <id>         INIT_TENANT_ID     OctoMesh tenant of the app, e.g. test-ordi
-                                              (default: the kebab-case app name, e.g. inspections)
+                                              (default: the kebab-case app name, e.g. field-inspections)
+  --client-id <id>         INIT_CLIENT_ID     OIDC client of the app in that tenant, e.g. ordi-frontend for a client
+                                              your tenant administrator registered on a hosted tenant
+                                              (default: <kebab-case app name>-frontend-debug, the client that
+                                              scripts/om_setupIdentityService_local.ps1 registers)
   --lang <code>            INIT_DEFAULT_LANG  Default language (default: en-GB)
   --extra-langs <a,b>      INIT_EXTRA_LANGS   Additional languages, comma-separated, e.g. de-AT,fr-FR (default: none)
   --yes, -y                INIT_ASSUME_YES=1  Do not ask for confirmation (required without a terminal)
@@ -34,8 +39,10 @@ Options (each option also reads the environment variable named next to it; an op
   INIT_INTERACTIVE=1|0     Force asking (1, e.g. answers piped into stdin) or never asking (0). Default: ask only when
                            stdin is a terminal.
 
-Language codes look like en-GB or de-AT. A tenant id uses letters, digits, '-' and '_' and starts with a letter or
-digit; the system tenant octosystem is refused.
+Language codes look like en-GB or de-AT. German (de-*) gets translated texts; every other language starts as a copy
+of the English texts (placeholders to translate in src/<app>/src/assets/i18n/<code>.json). A tenant id uses letters,
+digits, '-' and '_' and starts with a letter or digit; the system tenant octosystem is refused. A client id uses
+letters, digits, '.', '_', ':' and '-' and starts with a letter or digit.
 
 Example (no prompts):
   ./init.sh --app-name Inspections --tenant-id test-ordi --lang en-GB --extra-langs de-AT --yes
@@ -58,6 +65,7 @@ is_true() {
 
 APP_NAME="${INIT_APP_NAME:-}"
 TENANT_ID="${INIT_TENANT_ID:-}"
+CLIENT_ID="${INIT_CLIENT_ID:-}"
 DEFAULT_LANG="${INIT_DEFAULT_LANG:-}"
 ADDITIONAL_LANGS="${INIT_EXTRA_LANGS:-}"
 EXTRA_LANGS_GIVEN=0
@@ -76,6 +84,8 @@ while [ $# -gt 0 ]; do
     --app-name=*) APP_NAME="${1#*=}"; shift ;;
     --tenant-id) need_value "$1" $#; TENANT_ID="$2"; shift 2 ;;
     --tenant-id=*) TENANT_ID="${1#*=}"; shift ;;
+    --client-id) need_value "$1" $#; CLIENT_ID="$2"; shift 2 ;;
+    --client-id=*) CLIENT_ID="${1#*=}"; shift ;;
     --lang) need_value "$1" $#; DEFAULT_LANG="$2"; shift 2 ;;
     --lang=*) DEFAULT_LANG="${1#*=}"; shift ;;
     --extra-langs) need_value "$1" $#; ADDITIONAL_LANGS="$2"; EXTRA_LANGS_GIVEN=1; shift 2 ;;
@@ -105,7 +115,7 @@ fi
 
 if [ -z "$APP_NAME" ]; then
   if [ "$INTERACTIVE" = 1 ]; then
-    read -r -p "App Name (PascalCase, e.g. Acme): " APP_NAME || true
+    read -r -p "App Name (PascalCase or kebab-case, e.g. FieldInspections or field-inspections): " APP_NAME || true
   else
     fail "the app name is required: pass --app-name <Name> or set INIT_APP_NAME (no terminal to ask)."
   fi
@@ -113,9 +123,17 @@ fi
 if [ -z "$APP_NAME" ]; then
   fail "the app name is required."
 fi
-# Validate: must start with uppercase letter, alphanumeric only
-if ! [[ "$APP_NAME" =~ ^[A-Z][a-zA-Z0-9]*$ ]]; then
-  fail "app name '$APP_NAME' is not PascalCase (start with an uppercase letter, letters and digits only)."
+# PascalCase (FieldInspections) is used as it is. kebab-case (field-inspections: lower-case words of letters and
+# digits, each starting with a letter, joined by single dashes) is converted to PascalCase. Anything else is refused.
+APP_NAME_GIVEN="$APP_NAME"
+if [[ "$APP_NAME" =~ ^[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$ ]]; then
+  APP_NAME=""
+  IFS='-' read -ra NAME_PARTS <<< "$APP_NAME_GIVEN"
+  for part in "${NAME_PARTS[@]}"; do
+    APP_NAME="$APP_NAME$(echo "${part:0:1}" | tr '[:lower:]' '[:upper:]')${part:1}"
+  done
+elif ! [[ "$APP_NAME" =~ ^[A-Z][a-zA-Z0-9]*$ ]]; then
+  fail "app name '$APP_NAME' is neither PascalCase (FieldInspections: an uppercase letter first, then letters and digits) nor kebab-case (field-inspections: lower-case words joined by '-', each starting with a letter)."
 fi
 
 # --- 2. Derive naming variants ---
@@ -141,6 +159,17 @@ if ! [[ "$TENANT_ID" =~ ^[A-Za-z0-9][A-Za-z0-9_-]{0,62}$ ]]; then
 fi
 if [ "$(echo "$TENANT_ID" | tr '[:upper:]' '[:lower:]')" = "octosystem" ]; then
   fail "the system tenant 'octosystem' cannot be the tenant of the app."
+fi
+
+# The client id is never asked for: the default is the client of om_setupIdentityService_local.ps1.
+CLIENT_SOURCE="given"
+if [ -z "$CLIENT_ID" ]; then
+  CLIENT_ID="${KEBAB_CASE}-frontend-debug"
+  CLIENT_SOURCE="default, registered by scripts/om_setupIdentityService_local.ps1"
+fi
+# Same rule as om_setupIdentityService_local.ps1.
+if ! [[ "$CLIENT_ID" =~ ^[A-Za-z0-9][A-Za-z0-9._:-]{0,99}$ ]]; then
+  fail "client id '$CLIENT_ID' is invalid: use letters, digits, '.', '_', ':' and '-' only, starting with a letter or digit (at most 100 characters)."
 fi
 
 if [ -z "$DEFAULT_LANG" ] && [ "$INTERACTIVE" = 1 ]; then
@@ -177,10 +206,15 @@ if ! command -v python3 >/dev/null 2>&1; then
 fi
 
 echo -e "${YELLOW}Configuration:${NC}"
-echo "  App Name (PascalCase): $APP_NAME"
+if [ "$APP_NAME_GIVEN" != "$APP_NAME" ]; then
+  echo "  App Name (PascalCase): $APP_NAME (converted from '$APP_NAME_GIVEN')"
+else
+  echo "  App Name (PascalCase): $APP_NAME"
+fi
 echo "  kebab-case:            $KEBAB_CASE"
 echo "  snake_case:            $SNAKE_CASE"
 echo "  Tenant ID:             $TENANT_ID ($TENANT_SOURCE)"
+echo "  Client ID:             $CLIENT_ID ($CLIENT_SOURCE)"
 echo "  Default Language:      $DEFAULT_LANG"
 echo "  Additional Languages:  ${ADDITIONAL_LANGS:-none}"
 echo ""
@@ -243,6 +277,24 @@ for script in om_create_tenants om_delete_tenants om_importck om_importrt om_ini
   set_tenant "scripts/$script.ps1" "s/\[string\]\$TenantId = \"custom-app\"/[string]\$TenantId = \"$TENANT_PLACEHOLDER\"/"
 done
 
+# The client id the same way: the app (config.json) and the script that registers the client must agree.
+CLIENT_PLACEHOLDER="__INIT_CLIENT_ID__"
+set_client() {
+  local file="$SCRIPT_DIR/$1"
+  if [ ! -f "$file" ]; then
+    echo -e "${RED}Error: $1 not found, the client id could not be set.${NC}" >&2
+    exit 1
+  fi
+  sedi "$2" "$file"
+  if ! grep -q "$CLIENT_PLACEHOLDER" "$file"; then
+    echo -e "${RED}Error: no client id found in $1, the client id could not be set.${NC}" >&2
+    exit 1
+  fi
+  echo "  $1 (client id)"
+}
+set_client "src/custom-app/src/assets/config.json" "s/\"clientId\": \"custom-app-frontend-debug\"/\"clientId\": \"$CLIENT_PLACEHOLDER\"/"
+set_client "scripts/om_setupIdentityService_local.ps1" "s/\[string\]\$ClientId = \"custom-app-frontend-debug\"/[string]\$ClientId = \"$CLIENT_PLACEHOLDER\"/"
+
 # --- 5. Text replacements in all files ---
 
 echo -e "${GREEN}[3/7] Replacing placeholders in files...${NC}"
@@ -301,9 +353,9 @@ if [ -d "$SCRIPT_DIR/src/blueprints/CustomApp" ]; then
   echo "  src/blueprints/CustomApp/ -> src/blueprints/${APP_NAME}/"
 fi
 
-# Write the tenant id into the places marked in step 4.
-grep -rl --exclude-dir=.git --exclude-dir=node_modules "$TENANT_PLACEHOLDER" "$SCRIPT_DIR" | while read -r file; do
-  sedi "s/$TENANT_PLACEHOLDER/$TENANT_ID/g" "$file"
+# Write the tenant id and the client id into the places marked in step 4. Both were validated: no '/', '&' or '\'.
+grep -rlE --exclude-dir=.git --exclude-dir=node_modules "$TENANT_PLACEHOLDER|$CLIENT_PLACEHOLDER" "$SCRIPT_DIR" | while read -r file; do
+  sedi -e "s/$TENANT_PLACEHOLDER/$TENANT_ID/g" -e "s/$CLIENT_PLACEHOLDER/$CLIENT_ID/g" "$file"
 done
 
 # --- 7. Language configuration ---
@@ -312,20 +364,53 @@ echo -e "${GREEN}[5/7] Configuring languages...${NC}"
 
 FRONTEND_DIR="$SCRIPT_DIR/src/${KEBAB_CASE}"
 
-# Create i18n JSON files for the languages other than en-GB (copies of en-GB)
+# i18n files: the template ships en-GB.json and a German translation (de-AT.json). Every other German language
+# (de-DE, de-CH, ...) starts from the German file, any other language from the English one; those texts are
+# placeholders to translate. de-AT.json is removed when no language uses it.
+I18N_DIR="$FRONTEND_DIR/src/assets/i18n"
+PLACEHOLDER_LANGS=""
 IFS=',' read -ra LANG_ARRAY <<< "$ALL_LANGS"
 for lang in "${LANG_ARRAY[@]}"; do
-  if [ "$lang" != "en-GB" ] && [ ! -f "$FRONTEND_DIR/src/assets/i18n/${lang}.json" ]; then
-    cp "$FRONTEND_DIR/src/assets/i18n/en-GB.json" "$FRONTEND_DIR/src/assets/i18n/${lang}.json"
-    echo "  Created i18n file: ${lang}.json"
+  if [ "$lang" != "en-GB" ] && [ ! -f "$I18N_DIR/${lang}.json" ]; then
+    case "$lang" in
+      de-*)
+        cp "$I18N_DIR/de-AT.json" "$I18N_DIR/${lang}.json"
+        echo "  Created i18n file: ${lang}.json (German texts)"
+        ;;
+      *)
+        cp "$I18N_DIR/en-GB.json" "$I18N_DIR/${lang}.json"
+        echo -e "  ${YELLOW}Created i18n file: ${lang}.json with the English texts as placeholders - translate them${NC}"
+        PLACEHOLDER_LANGS="${PLACEHOLDER_LANGS:+$PLACEHOLDER_LANGS, }$lang"
+        ;;
+    esac
   fi
 done
+case ",$ALL_LANGS," in
+  *",de-AT,"*) echo "  i18n file de-AT.json (German texts)" ;;
+  *) rm -f "$I18N_DIR/de-AT.json" ;;
+esac
 
-# Default and supported languages in config.json. The values go in through the environment, never into the code.
-INIT_CONFIG_FILE="$FRONTEND_DIR/src/assets/config.json" INIT_ALL_LANGS="$ALL_LANGS" python3 - <<'PY'
-import json, os
+# Default and supported languages in config.json, and the flags of the language picker in styles.scss. The values go
+# in through the environment, never into the code.
+INIT_CONFIG_FILE="$FRONTEND_DIR/src/assets/config.json" INIT_STYLES_FILE="$FRONTEND_DIR/src/styles.scss" \
+  INIT_ALL_LANGS="$ALL_LANGS" python3 - <<'PY'
+import json, os, re
 path = os.environ['INIT_CONFIG_FILE']
 langs = os.environ['INIT_ALL_LANGS'].split(',')
+flags = []
+for lang in langs:
+    flag = lang[-2:].lower()
+    if flag not in flags:
+        flags.append(flag)
+styles_path = os.environ['INIT_STYLES_FILE']
+with open(styles_path, 'r', encoding='utf-8') as f:
+    styles = f.read()
+pattern = re.compile(r'(\$flag-icons-included-countries: \()[^)]*(\))')
+if not pattern.search(styles):
+    raise SystemExit('Error: $flag-icons-included-countries not found in ' + styles_path)
+styles = pattern.sub(lambda m: m.group(1) + '\n    ' + ',\n    '.join(flags) + ',\n  ' + m.group(2), styles, count=1)
+with open(styles_path, 'w', encoding='utf-8') as f:
+    f.write(styles)
 names = {'en-GB': 'English', 'de-AT': 'Deutsch (AT)', 'de-DE': 'Deutsch (DE)', 'de-CH': 'Deutsch (CH)',
          'fr-FR': 'Français', 'it-IT': 'Italiano', 'es-ES': 'Español', 'pt-BR': 'Português',
          'nl-NL': 'Nederlands', 'pl-PL': 'Polski', 'cs-CZ': 'Čeština', 'ja-JP': 'Japanese', 'zh-CN': 'Chinese'}
@@ -357,11 +442,16 @@ echo ""
 echo -e "${CYAN}=== Initialization complete! ===${NC}"
 echo ""
 echo "Tenant of the app: $TENANT_ID"
+echo "OIDC client:       $CLIENT_ID"
+if [ -n "$PLACEHOLDER_LANGS" ]; then
+  echo -e "${YELLOW}Translate the English placeholder texts of: $PLACEHOLDER_LANGS (src/${KEBAB_CASE}/src/assets/i18n/)${NC}"
+fi
 echo ""
 echo "Next steps:"
-echo "  1. cd src/${KEBAB_CASE}"
-echo "  2. npm install"
-echo "  3. npm start"
+echo "  1. pwsh scripts/generate-dev-certs.ps1   (certificate of the https dev server, needed by npm start)"
+echo "  2. cd src/${KEBAB_CASE}"
+echo "  3. npm install"
+echo "  4. npm start"
 echo ""
 echo "See README.md for full documentation."
 

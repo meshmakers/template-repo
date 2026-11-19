@@ -10,13 +10,19 @@
     INIT_INTERACTIVE=1 or 0 forces asking or never asking. Invalid input stops the script with exit code 2 before it
     changes any file.
 .PARAMETER AppName
-    App name in PascalCase, e.g. Inspections (INIT_APP_NAME). Required.
+    App name in PascalCase (FieldInspections) or kebab-case (field-inspections, converted to FieldInspections)
+    (INIT_APP_NAME). Required.
 .PARAMETER TenantId
     OctoMesh tenant of the app, e.g. test-ordi (INIT_TENANT_ID). Default: the kebab-case app name.
+.PARAMETER ClientId
+    OIDC client of the app in that tenant, e.g. a client your tenant administrator registered on a hosted tenant
+    (INIT_CLIENT_ID). Default: <kebab-case app name>-frontend-debug, the client that
+    scripts/om_setupIdentityService_local.ps1 registers.
 .PARAMETER Lang
     Default language, e.g. en-GB (INIT_DEFAULT_LANG). Default: en-GB.
 .PARAMETER ExtraLangs
-    Additional languages, comma-separated, e.g. de-AT,fr-FR (INIT_EXTRA_LANGS). Default: none.
+    Additional languages, comma-separated, e.g. de-AT,fr-FR (INIT_EXTRA_LANGS). Default: none. German (de-*) gets
+    translated texts; every other language starts as a copy of the English texts (placeholders to translate).
 .PARAMETER Yes
     Do not ask for confirmation (INIT_ASSUME_YES=1). Required without a terminal.
 .EXAMPLE
@@ -25,6 +31,7 @@
 param(
     [string]$AppName,
     [string]$TenantId,
+    [string]$ClientId,
     [string]$Lang,
     [string]$ExtraLangs,
     [switch]$Yes
@@ -46,6 +53,7 @@ Write-Host ""
 
 if (-not $PSBoundParameters.ContainsKey('AppName')) { $AppName = $env:INIT_APP_NAME }
 if (-not $PSBoundParameters.ContainsKey('TenantId')) { $TenantId = $env:INIT_TENANT_ID }
+if (-not $PSBoundParameters.ContainsKey('ClientId')) { $ClientId = $env:INIT_CLIENT_ID }
 if (-not $PSBoundParameters.ContainsKey('Lang')) { $Lang = $env:INIT_DEFAULT_LANG }
 $ExtraLangsGiven = $PSBoundParameters.ContainsKey('ExtraLangs') -or -not [string]::IsNullOrEmpty($env:INIT_EXTRA_LANGS)
 if (-not $PSBoundParameters.ContainsKey('ExtraLangs')) { $ExtraLangs = $env:INIT_EXTRA_LANGS }
@@ -68,11 +76,17 @@ if ([string]::IsNullOrWhiteSpace($AppName)) {
     if (-not $Interactive) {
         Stop-Init "the app name is required: pass -AppName <Name> or set INIT_APP_NAME (no terminal to ask)."
     }
-    $AppName = Read-Host "App Name (PascalCase, e.g. Acme)"
+    $AppName = Read-Host "App Name (PascalCase or kebab-case, e.g. FieldInspections or field-inspections)"
 }
 if ([string]::IsNullOrWhiteSpace($AppName)) { Stop-Init "the app name is required." }
-if ($AppName -cnotmatch '\A[A-Z][a-zA-Z0-9]*\z') {
-    Stop-Init "app name '$AppName' is not PascalCase (start with an uppercase letter, letters and digits only)."
+# PascalCase (FieldInspections) is used as it is. kebab-case (field-inspections: lower-case words of letters and
+# digits, each starting with a letter, joined by single dashes) is converted to PascalCase. Anything else is refused.
+$AppNameGiven = $AppName
+if ($AppName -cmatch '\A[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*\z') {
+    $AppName = -join ($AppName -split '-' | ForEach-Object { $_.Substring(0, 1).ToUpper() + $_.Substring(1) })
+}
+elseif ($AppName -cnotmatch '\A[A-Z][a-zA-Z0-9]*\z') {
+    Stop-Init "app name '$AppName' is neither PascalCase (FieldInspections: an uppercase letter first, then letters and digits) nor kebab-case (field-inspections: lower-case words joined by '-', each starting with a letter)."
 }
 
 # --- 2. Derive naming variants ---
@@ -96,6 +110,17 @@ if ($TenantId -notmatch '\A[A-Za-z0-9][A-Za-z0-9_-]{0,62}\z') {
 }
 if ($TenantId -ieq 'octosystem') { Stop-Init "the system tenant 'octosystem' cannot be the tenant of the app." }
 
+# The client id is never asked for: the default is the client of om_setupIdentityService_local.ps1.
+$ClientSource = "given"
+if ([string]::IsNullOrEmpty($ClientId)) {
+    $ClientId = "$KebabCase-frontend-debug"
+    $ClientSource = "default, registered by scripts/om_setupIdentityService_local.ps1"
+}
+# Same rule as om_setupIdentityService_local.ps1.
+if ($ClientId -notmatch '\A[A-Za-z0-9][A-Za-z0-9._:-]{0,99}\z') {
+    Stop-Init "client id '$ClientId' is invalid: use letters, digits, '.', '_', ':' and '-' only, starting with a letter or digit (at most 100 characters)."
+}
+
 if ([string]::IsNullOrEmpty($Lang) -and $Interactive) { $Lang = Read-Host "Default Language [en-GB]" }
 $DefaultLang = if ([string]::IsNullOrWhiteSpace($Lang)) { "en-GB" } else { $Lang }
 if (-not $ExtraLangsGiven -and $Interactive) {
@@ -118,10 +143,12 @@ foreach ($raw in (("$ExtraLangs") -split ',')) {
 $AdditionalLangs = ($AllLangs | Select-Object -Skip 1) -join ','
 
 Write-Host "Configuration:" -ForegroundColor Yellow
-Write-Host "  App Name (PascalCase): $AppName"
+if ($AppNameGiven -cne $AppName) { Write-Host "  App Name (PascalCase): $AppName (converted from '$AppNameGiven')" }
+else { Write-Host "  App Name (PascalCase): $AppName" }
 Write-Host "  kebab-case:            $KebabCase"
 Write-Host "  snake_case:            $SnakeCase"
 Write-Host "  Tenant ID:             $TenantId ($TenantSource)"
+Write-Host "  Client ID:             $ClientId ($ClientSource)"
 Write-Host "  Default Language:      $DefaultLang"
 Write-Host "  Additional Languages:  $(if ($AdditionalLangs) { $AdditionalLangs } else { 'none' })"
 Write-Host ""
@@ -170,6 +197,19 @@ Set-TenantPlaceholder 'src/charts/custom-app/values.yaml' '(?m)^(  tenantId: )"c
 foreach ($script in @('om_create_tenants', 'om_delete_tenants', 'om_importck', 'om_importrt', 'om_initialize_tenant', 'om_setupIdentityService_local')) {
     Set-TenantPlaceholder "scripts/$script.ps1" '\[string\]\$TenantId = "custom-app"' "[string]`$TenantId = `"$TenantPlaceholder`""
 }
+# The client id the same way: the app (config.json) and the script that registers the client must agree.
+$ClientPlaceholder = '__INIT_CLIENT_ID__'
+function Set-ClientPlaceholder([string]$RelativePath, [string]$Pattern, [string]$Replacement) {
+    $path = Join-Path $ScriptDir $RelativePath
+    if (-not (Test-Path $path)) { throw "$RelativePath not found, the client id could not be set." }
+    $content = [System.IO.File]::ReadAllText($path)
+    $updated = $content -creplace $Pattern, $Replacement
+    if ($updated -notmatch $ClientPlaceholder) { throw "No client id found in $RelativePath, the client id could not be set." }
+    [System.IO.File]::WriteAllText($path, $updated)
+    Write-Host "  $RelativePath (client id)"
+}
+Set-ClientPlaceholder 'src/custom-app/src/assets/config.json' '"clientId": "custom-app-frontend-debug"' "`"clientId`": `"$ClientPlaceholder`""
+Set-ClientPlaceholder 'scripts/om_setupIdentityService_local.ps1' '\[string\]\$ClientId = "custom-app-frontend-debug"' "[string]`$ClientId = `"$ClientPlaceholder`""
 
 # --- 4. Text replacements in all files ---
 
@@ -261,13 +301,13 @@ if (Test-Path $blueprintDir) {
     Write-Host "  src/blueprints/CustomApp/ -> src/blueprints/$AppName/"
 }
 
-# Write the tenant id into the places marked in step 1.
+# Write the tenant id and the client id into the places marked in step 1.
 Get-ChildItem -Path $ScriptDir -Recurse -File -Force |
     Where-Object { $_.FullName -notmatch '[/\\](\.git|node_modules)[/\\]' } |
     ForEach-Object {
         $content = [System.IO.File]::ReadAllText($_.FullName)
-        if ($content.Contains($TenantPlaceholder)) {
-            [System.IO.File]::WriteAllText($_.FullName, $content.Replace($TenantPlaceholder, $TenantId))
+        if ($content.Contains($TenantPlaceholder) -or $content.Contains($ClientPlaceholder)) {
+            [System.IO.File]::WriteAllText($_.FullName, $content.Replace($TenantPlaceholder, $TenantId).Replace($ClientPlaceholder, $ClientId))
         }
     }
 
@@ -301,6 +341,7 @@ if (-not [string]::IsNullOrWhiteSpace($AdditionalLangs)) {
 
 # Build supported languages array
 $SupportedLanguages = @()
+$PlaceholderLangs = @()
 foreach ($lang in $AllLangs) {
     $flag = ($lang -replace '^.*-', '').ToLower()
     $name = if ($LangNames.ContainsKey($lang)) { $LangNames[$lang] } else { $lang }
@@ -310,20 +351,40 @@ foreach ($lang in $AllLangs) {
         flagIcon    = $flag
     }
 
-    # Create i18n JSON file for additional languages (copy from en-GB)
+    # i18n files: the template ships en-GB.json and a German translation (de-AT.json). Every other German language
+    # starts from the German file, any other language from the English one; those texts are placeholders.
     $i18nDir = Join-Path $FrontendDir "src" "assets" "i18n"
     $langFile = Join-Path $i18nDir "$lang.json"
     if ($lang -ne 'en-GB' -and -not (Test-Path $langFile)) {
-        Copy-Item -Path (Join-Path $i18nDir "en-GB.json") -Destination $langFile
-        Write-Host "  Created i18n file: $lang.json"
+        if ($lang -clike 'de-*') {
+            Copy-Item -Path (Join-Path $i18nDir "de-AT.json") -Destination $langFile
+            Write-Host "  Created i18n file: $lang.json (German texts)"
+        }
+        else {
+            Copy-Item -Path (Join-Path $i18nDir "en-GB.json") -Destination $langFile
+            Write-Host "  Created i18n file: $lang.json with the English texts as placeholders - translate them" -ForegroundColor Yellow
+            $PlaceholderLangs += $lang
+        }
     }
 }
+if ($AllLangs -ccontains 'de-AT') { Write-Host "  i18n file de-AT.json (German texts)" }
+else { Remove-Item -Path (Join-Path $FrontendDir "src" "assets" "i18n" "de-AT.json") -ErrorAction SilentlyContinue }
 
 # Update config.json
 $config = Get-Content $ConfigFile -Raw | ConvertFrom-Json
 $config.defaultLanguage = $DefaultLang
 $config.supportedLanguages = $SupportedLanguages
 $config | ConvertTo-Json -Depth 10 | Set-Content $ConfigFile -Encoding UTF8
+
+# Flags of the language picker in styles.scss
+$StylesFile = Join-Path $FrontendDir "src" "styles.scss"
+$flags = @($SupportedLanguages | ForEach-Object { $_.flagIcon } | Select-Object -Unique)
+$styles = [System.IO.File]::ReadAllText($StylesFile)
+$flagPattern = '(\$flag-icons-included-countries: \()[^)]*(\))'
+if ($styles -notmatch $flagPattern) { throw "`$flag-icons-included-countries not found in $StylesFile" }
+$flagList = "`n    " + ($flags -join ",`n    ") + ",`n  "
+$styles = [regex]::new($flagPattern).Replace($styles, { param($m) $m.Groups[1].Value + $flagList + $m.Groups[2].Value }, 1)
+[System.IO.File]::WriteAllText($StylesFile, $styles)
 
 
 # --- 6. Generate dev certificates ---
@@ -366,11 +427,16 @@ Write-Host ""
 Write-Host "=== Initialization complete! ===" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "Tenant of the app: $TenantId"
+Write-Host "OIDC client:       $ClientId"
+if ($PlaceholderLangs.Count -gt 0) {
+    Write-Host "Translate the English placeholder texts of: $($PlaceholderLangs -join ', ') (src/$KebabCase/src/assets/i18n/)" -ForegroundColor Yellow
+}
 Write-Host ""
 Write-Host "Next steps:"
-Write-Host "  1. cd src/$KebabCase"
-Write-Host "  2. npm install"
-Write-Host "  3. npm start"
+Write-Host "  1. If step 5 could not create the certificates: pwsh scripts/generate-dev-certs.ps1 (needed by npm start)"
+Write-Host "  2. cd src/$KebabCase"
+Write-Host "  3. npm install"
+Write-Host "  4. npm start"
 Write-Host ""
 Write-Host "See README.md for full documentation."
 

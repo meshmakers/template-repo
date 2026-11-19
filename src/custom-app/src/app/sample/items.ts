@@ -1,4 +1,4 @@
-import { GetItemsQuery } from './graphQL/getItems.generated';
+import { GetItemsQueryDto } from './graphQL/getItems.generated';
 
 /** One row of the items table on the home page. */
 export interface ItemRow {
@@ -42,7 +42,7 @@ export function statusLabel(status: string | number | null | undefined): string 
 }
 
 /** Maps the GraphQL result to table rows; null entries are skipped. */
-export function mapItems(data: GetItemsQuery | null | undefined): ItemRow[] {
+export function mapItems(data: GetItemsQueryDto | null | undefined): ItemRow[] {
   const items = data?.runtime?.customAppItem?.items ?? [];
   return items
     .filter((item): item is NonNullable<typeof item> => !!item)

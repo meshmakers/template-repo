@@ -1,13 +1,13 @@
 import { Injectable, inject } from '@angular/core';
 import { BehaviorSubject, Observable, of, timer } from 'rxjs';
 import { catchError, map, switchMap } from 'rxjs/operators';
-import { GetMaintenanceModeGQL } from '../graphQL/getMaintenanceMode.generated';
+import { GetMaintenanceModeDtoGQL } from '../graphQL/getMaintenanceMode.generated';
 
 @Injectable({
   providedIn: 'root',
 })
 export class MaintenanceModeService {
-  private readonly getMaintenanceModeGQL = inject(GetMaintenanceModeGQL);
+  private readonly getMaintenanceModeGQL = inject(GetMaintenanceModeDtoGQL);
   private readonly maintenanceModeSubject = new BehaviorSubject<boolean>(false);
   readonly maintenanceMode$ = this.maintenanceModeSubject.asObservable();
 

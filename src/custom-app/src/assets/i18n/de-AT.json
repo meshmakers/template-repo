@@ -1,0 +1,69 @@
+{
+  "APP": {
+    "TITLE": "CustomApp",
+    "HOME": "Startseite",
+    "DEVELOPER_INFO": "Entwicklerinfo",
+    "WELCOME": "Willkommen bei CustomApp",
+    "GETTING_STARTED": "Erste Schritte"
+  },
+  "COMMON": {
+    "SAVE": "Speichern",
+    "CANCEL": "Abbrechen",
+    "DELETE": "Löschen",
+    "EDIT": "Bearbeiten",
+    "CREATE": "Anlegen",
+    "SEARCH": "In allen Spalten suchen...",
+    "LOADING": "Wird geladen...",
+    "NO_DATA": "Keine Daten vorhanden",
+    "NO_RECORDS": "Keine Einträge vorhanden.",
+    "CONFIRM": "Bestätigen",
+    "YES": "Ja",
+    "NO": "Nein",
+    "SAVING": "Wird gespeichert...",
+    "UPDATE": "Aktualisieren",
+    "BACK": "Zurück",
+    "NEW": "Neu",
+    "VIEW_DETAILS": "Details anzeigen",
+    "UNSAVED_CHANGES": "Ungespeicherte Änderungen",
+    "UNSAVED_CHANGES_MESSAGE": "Es gibt ungespeicherte Änderungen. Wollen Sie die Seite wirklich verlassen? Die Änderungen gehen verloren.",
+    "UNSAVED_CHANGES_YES": "Ja",
+    "UNSAVED_CHANGES_NO": "Nein",
+    "MODIFIED": "GEÄNDERT",
+    "READY": "BEREIT",
+    "RETRY": "Erneut versuchen"
+  },
+  "LIST_VIEW": {
+    "SEARCH_PLACEHOLDER": "In allen Spalten suchen...",
+    "SHOW_ROW_FILTER": "Zeilenfilter anzeigen",
+    "EXPORT_TO_EXCEL": "Nach Excel exportieren",
+    "EXPORT_TO_PDF": "Als PDF exportieren",
+    "REFRESH_DATA": "Daten aktualisieren",
+    "ACTIONS_COLUMN_TITLE": "Aktionen",
+    "PDF_PAGE_TEMPLATE": "Seite {pageNum} von {totalPages}",
+    "PAGER_ITEMS_PER_PAGE": "Einträge pro Seite",
+    "PAGER_OF": "von",
+    "PAGER_ITEMS": "Einträge",
+    "PAGER_PAGE": "Seite",
+    "PAGER_FIRST_PAGE": "Zur ersten Seite",
+    "PAGER_LAST_PAGE": "Zur letzten Seite",
+    "PAGER_PREVIOUS_PAGE": "Zur vorherigen Seite",
+    "PAGER_NEXT_PAGE": "Zur nächsten Seite",
+    "NO_RECORDS": "Keine Einträge vorhanden."
+  },
+  "MAINTENANCE": {
+    "TITLE": "Wartungsmodus",
+    "MESSAGE": "Die Anwendung wird gerade gewartet und ist vorübergehend nicht verfügbar.",
+    "SUBMESSAGE": "Bitte versuchen Sie es später erneut."
+  },
+  "HOME": {
+    "INTRO": "Das ist die Startseite Ihrer OctoMesh Custom App.",
+    "SAMPLE_OFF": "Die Beispieltabelle ist ausgeschaltet: Sie braucht das Beispiel-Datenmodell dieser Vorlage in Ihrem Tenant. Importieren Sie es und schalten Sie das Beispiel dann in src/app/sample/sample-items.config.ts ein (README, 'Generate the GraphQL types').",
+    "ITEMS_TITLE": "Einträge",
+    "ITEMS_EMPTY": "In diesem Tenant gibt es noch keine Einträge. Importieren Sie die Beispieldaten des Blueprints (README, Schritt 'Set up the tenant') und laden Sie die Seite neu.",
+    "ITEMS_ERROR": "Die Einträge konnten nicht geladen werden. Prüfen Sie die Verbindung und Ihre Anmeldung und versuchen Sie es erneut.",
+    "COLUMN_NAME": "Name",
+    "COLUMN_CODE": "Code",
+    "COLUMN_QUANTITY": "Menge",
+    "COLUMN_STATUS": "Status"
+  }
+}

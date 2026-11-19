@@ -3,6 +3,15 @@ import { LOCAL_STORAGE } from '../app.tokens';
 
 const THEME_KEY = 'custom-app-theme';
 
+/**
+ * Sets data-theme on the html element to 'dark' or 'light'. Both values are explicit: the Octo tokens of
+ * octo-ui are dark by default and switch to light for [data-theme='light'] or, without the attribute, for an OS
+ * that prefers light, so a missing attribute would let the OS override the user's choice.
+ */
+export function applyThemeAttribute(html: HTMLElement, dark: boolean): void {
+  html.setAttribute('data-theme', dark ? 'dark' : 'light');
+}
+
 @Injectable({ providedIn: 'root' })
 export class ThemeService {
   private readonly storage = inject(LOCAL_STORAGE);
@@ -34,12 +43,7 @@ export class ThemeService {
   }
 
   private applyTheme(): void {
-    const html = document.documentElement;
-    if (this.isDarkSignal()) {
-      html.setAttribute('data-theme', 'dark');
-    } else {
-      html.removeAttribute('data-theme');
-    }
+    applyThemeAttribute(document.documentElement, this.isDarkSignal());
   }
 
   private persistTheme(): void {

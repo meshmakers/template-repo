@@ -4,7 +4,7 @@
   "scripts": {
     "ng": "ng",
     "setup-license": "node scripts/setup-license.js",
-    "prestart": "npm run setup-license",
+    "prestart": "node scripts/check-dev-certs.js && npm run setup-license",
     "start": "ng serve",
     "build": "npm run lint && ng build",
     "prebuild:prod": "npm run setup-license",
@@ -17,7 +17,7 @@
     "codegen": "graphql-codegen --config codegen.yml",
     "codegen:sample": "graphql-codegen --config codegen.sample.yml",
     "codegen:check": "node scripts/codegen-check.js",
-    "test:codegen": "node --test scripts/codegen-check.test.js",
+    "test:codegen": "node --test scripts/codegen-check.test.js scripts/check-dev-certs.test.js",
     "postinstall": "node src/environments/version.ts",
     "format": "prettier --write \"src/**/*.{ts,html,scss}\"",
     "format:check": "prettier --check \"src/**/*.{ts,html,scss}\""
@@ -70,7 +70,7 @@
     "@progress/kendo-drawing": "1.25.0",
     "@progress/kendo-licensing": "1.11.0",
     "@progress/kendo-svg-icons": "^4.9.0",
-    "@progress/kendo-theme-default": "^14.1.0",
+    "@progress/kendo-theme-material": "^14.1.0",
     "angular-oauth2-oidc": "22.0.2",
     "apollo-angular": "14.2.0",
     "cron-parser": "5.10.0",

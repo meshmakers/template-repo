@@ -11,7 +11,9 @@
 # `src/app/sample/graphQL/` and has its own config (codegen.sample.yml, npm run codegen:sample)
 # because its type exists only after the sample CK model is imported.
 #
-# CI: npm run codegen:check runs this config against graphql/ci.schema.graphql.
+# Check: npm run codegen:check runs this config in memory against your schema.json, a committed
+# graphql/ci.schema.json or graphql/ci.schema.graphql (the first that exists; see scripts/codegen-check.js).
+# typesSuffix: every generated type and service gets the suffix Dto (GetAssetsQueryDto, GetAssetsDtoGQL).
 overwrite: true
 schema: '${OCTO_GRAPHQL_SCHEMA:schema.json}'
 documents: 'src/app/graphQL/*.graphql'
@@ -21,7 +23,7 @@ generates:
       - 'typescript'
     config:
       enumsAsTypes: true
-      typeSuffix: 'Dto'
+      typesSuffix: 'Dto'
       scalars:
         OctoObjectId: string
         CkAttributeId: string
@@ -38,7 +40,7 @@ generates:
       - 'typescript-apollo-angular'
     config:
       enumsAsTypes: true
-      typeSuffix: 'Dto'
+      typesSuffix: 'Dto'
       scalars:
         OctoObjectId: string
         CkAttributeId: string

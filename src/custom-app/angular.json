@@ -44,7 +44,17 @@
             "styles": [
               "src/styles.scss"
             ],
+            "stylePreprocessorOptions": {
+              "includePaths": [
+                "node_modules/@meshmakers/octo-ui"
+              ]
+            },
             "scripts": [],
+            "allowedCommonJsDependencies": [
+              "cronstrue",
+              "cron-parser",
+              "url-parse"
+            ],
             "preserveSymlinks": true
           },
           "configurations": {
@@ -52,8 +62,8 @@
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "4mb",
-                  "maximumError": "6mb"
+                  "maximumWarning": "6mb",
+                  "maximumError": "8mb"
                 },
                 {
                   "type": "anyComponentStyle",

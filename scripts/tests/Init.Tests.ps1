@@ -13,7 +13,7 @@ BeforeDiscovery {
 
 BeforeAll {
     $script:RepoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-    $script:InitVariables = @('INIT_APP_NAME', 'INIT_TENANT_ID', 'INIT_DEFAULT_LANG', 'INIT_EXTRA_LANGS', 'INIT_ASSUME_YES', 'INIT_INTERACTIVE')
+    $script:InitVariables = @('INIT_APP_NAME', 'INIT_TENANT_ID', 'INIT_CLIENT_ID', 'INIT_DEFAULT_LANG', 'INIT_EXTRA_LANGS', 'INIT_ASSUME_YES', 'INIT_INTERACTIVE')
     $script:TenantScripts = @('om_create_tenants', 'om_delete_tenants', 'om_importck', 'om_importrt', 'om_initialize_tenant', 'om_setupIdentityService_local')
 
     # Files of the template: tracked and new (not ignored) files of the checkout, so node_modules and build output stay
@@ -73,8 +73,23 @@ BeforeAll {
             (Get-Content -Raw (Join-Path $Copy "scripts/$script.ps1")) | Should -Match ([regex]::Escape("[string]`$TenantId = `"$TenantId`""))
         }
         $left = Get-ChildItem -Path $Copy -Recurse -File -Force | Where-Object { $_.FullName -notmatch '[/\\]\.git[/\\]' } |
-            Select-String -Pattern 'custom-app', 'customApp', 'CustomApp', 'custom_app', '__INIT_TENANT_ID__' -CaseSensitive -List
+            Select-String -Pattern 'custom-app', 'customApp', 'CustomApp', 'custom_app', '__INIT_TENANT_ID__', '__INIT_CLIENT_ID__' -CaseSensitive -List
         $left | Should -BeNullOrEmpty
+    }
+
+    # Asserts that the app (config.json) and the client registration script use the same client id.
+    function script:Assert-Client([string]$Copy, [string]$Kebab, [string]$ClientId) {
+        $config = Get-Content -Raw (Join-Path $Copy "src/$Kebab/src/assets/config.json") | ConvertFrom-Json
+        $config.clientId | Should -BeExactly $ClientId
+        (Get-Content -Raw (Join-Path $Copy "scripts/om_setupIdentityService_local.ps1")) | Should -Match ([regex]::Escape("[string]`$ClientId = `"$ClientId`""))
+    }
+
+    # The flags of the language picker in styles.scss, in order.
+    function script:Get-Flags([string]$Copy, [string]$Kebab) {
+        $styles = Get-Content -Raw (Join-Path $Copy "src/$Kebab/src/styles.scss")
+        $match = [regex]::Match($styles, '\$flag-icons-included-countries: \(([^)]*)\)')
+        $match.Success | Should -BeTrue
+        return @($match.Groups[1].Value -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
     }
 }
 
@@ -95,6 +110,60 @@ Describe "init.sh without a terminal" -Skip:(-not $script:HasBash) {
         }
         Join-Path $copy "src/InspectionsCkModel/InspectionsCkModel.csproj" | Should -Exist
         Join-Path $copy "src/blueprints/Inspections/blueprint.yaml" | Should -Exist
+        Assert-Client -Copy $copy -Kebab "inspections" -ClientId "inspections-frontend-debug"
+        $r.Output | Should -Match 'Client ID:\s+inspections-frontend-debug \(default'
+    }
+
+    It "accepts a kebab-case app name and converts it to PascalCase" {
+        $copy = New-TemplateCopy
+        $r = Invoke-Init -Copy $copy -Arguments @("--app-name", "ordi-terminplan", "--tenant-id", "test-ordi", "--yes")
+        $r.ExitCode | Should -Be 0 -Because $r.Output
+        $r.Output | Should -Match "App Name \(PascalCase\): OrdiTerminplan \(converted from 'ordi-terminplan'\)"
+        Assert-Tenant -Copy $copy -Kebab "ordi-terminplan" -TenantId "test-ordi"
+        Join-Path $copy "src/OrdiTerminplanCkModel/OrdiTerminplanCkModel.csproj" | Should -Exist
+        Join-Path $copy "src/blueprints/OrdiTerminplan/blueprint.yaml" | Should -Exist
+        Assert-Client -Copy $copy -Kebab "ordi-terminplan" -ClientId "ordi-terminplan-frontend-debug"
+    }
+
+    It "uses the client id given with --client-id in the app and in the client registration script" {
+        $copy = New-TemplateCopy
+        $r = Invoke-Init -Copy $copy -Arguments @("--app-name", "Inspections", "--tenant-id", "test-ordi", "--client-id", "custom-app-ordi.frontend", "--yes")
+        $r.ExitCode | Should -Be 0 -Because $r.Output
+        $r.Output | Should -Match 'Client ID:\s+custom-app-ordi\.frontend \(given\)'
+        $config = Get-Content -Raw (Join-Path $copy "src/inspections/src/assets/config.json") | ConvertFrom-Json
+        # A client id that contains the template name stays as given.
+        $config.clientId | Should -BeExactly "custom-app-ordi.frontend"
+        (Get-Content -Raw (Join-Path $copy "scripts/om_setupIdentityService_local.ps1")) | Should -Match ([regex]::Escape('[string]$ClientId = "custom-app-ordi.frontend"'))
+    }
+
+    It "reads the client id from INIT_CLIENT_ID" {
+        $copy = New-TemplateCopy
+        $r = Invoke-Init -Copy $copy -Arguments @("--app-name", "Inspections", "--yes") -Environment @{ INIT_CLIENT_ID = "ordi-frontend" }
+        $r.ExitCode | Should -Be 0 -Because $r.Output
+        Assert-Client -Copy $copy -Kebab "inspections" -ClientId "ordi-frontend"
+    }
+
+    It "ships German texts for de-AT and de-DE, English placeholders for other languages, and their flags" {
+        $copy = New-TemplateCopy
+        $r = Invoke-Init -Copy $copy -Arguments @("--app-name", "Inspections", "--lang", "de-AT", "--extra-langs", "en-GB,de-DE,fr-FR", "--yes")
+        $r.ExitCode | Should -Be 0 -Because $r.Output
+        $i18n = Join-Path $copy "src/inspections/src/assets/i18n"
+        (Get-Content -Raw (Join-Path $i18n "de-AT.json") | ConvertFrom-Json).APP.HOME | Should -Be "Startseite"
+        (Get-Content -Raw (Join-Path $i18n "de-AT.json") | ConvertFrom-Json).APP.WELCOME | Should -Be "Willkommen bei Inspections"
+        (Get-Content -Raw (Join-Path $i18n "de-DE.json") | ConvertFrom-Json).APP.HOME | Should -Be "Startseite"
+        (Get-Content -Raw (Join-Path $i18n "fr-FR.json") | ConvertFrom-Json).APP.HOME | Should -Be "Home"
+        $r.Output | Should -Match 'fr-FR\.json with the English texts as placeholders'
+        $r.Output | Should -Match 'Translate the English placeholder texts of: fr-FR'
+        Get-Flags -Copy $copy -Kebab "inspections" | Should -Be @("at", "gb", "de", "fr")
+    }
+
+    It "removes the German file when no language uses it and keeps only the flags in use" {
+        $copy = New-TemplateCopy
+        $r = Invoke-Init -Copy $copy -Arguments @("--app-name", "Inspections", "--yes")
+        $r.ExitCode | Should -Be 0 -Because $r.Output
+        Join-Path $copy "src/inspections/src/assets/i18n/de-AT.json" | Should -Not -Exist
+        Get-Flags -Copy $copy -Kebab "inspections" | Should -Be @("gb")
+        $r.Output | Should -Match 'pwsh scripts/generate-dev-certs\.ps1'
     }
 
     It "reads the environment variables instead of options" {
@@ -133,8 +202,12 @@ Describe "init.sh without a terminal" -Skip:(-not $script:HasBash) {
     }
 
     It "refuses <Case> with exit code 2 and changes no file" -ForEach @(
-        @{ Case = "a non-PascalCase app name"; Arguments = @("--app-name", "inspections", "--yes"); Expect = "not PascalCase" }
-        @{ Case = "an app name with a dash"; Arguments = @("--app-name", "Field-Inspections", "--yes"); Expect = "not PascalCase" }
+        @{ Case = "a camelCase app name"; Arguments = @("--app-name", "fieldInspections", "--yes"); Expect = "neither PascalCase" }
+        @{ Case = "an app name with a dash and capitals"; Arguments = @("--app-name", "Field-Inspections", "--yes"); Expect = "neither PascalCase" }
+        @{ Case = "a kebab-case name with a double dash"; Arguments = @("--app-name", "field--inspections", "--yes"); Expect = "neither PascalCase" }
+        @{ Case = "a kebab-case part starting with a digit"; Arguments = @("--app-name", "app-2go", "--yes"); Expect = "neither PascalCase" }
+        @{ Case = "an option-like client id"; Arguments = @("--app-name", "Inspections", "--client-id", "-x", "--yes"); Expect = "client id '-x' is invalid" }
+        @{ Case = "a client id with a slash"; Arguments = @("--app-name", "Inspections", "--client-id", "a/b", "--yes"); Expect = "client id 'a/b' is invalid" }
         @{ Case = "a missing app name"; Arguments = @("--tenant-id", "test-ordi", "--yes"); Expect = "app name is required: pass --app-name" }
         @{ Case = "a missing --yes"; Arguments = @("--app-name", "Inspections"); Expect = "confirmation required: pass --yes" }
         @{ Case = "an option-like tenant id"; Arguments = @("--app-name", "Inspections", "--tenant-id", "-y", "--yes"); Expect = "tenant id '-y' is invalid" }
@@ -171,7 +244,7 @@ Describe "init.sh without a terminal" -Skip:(-not $script:HasBash) {
         $before = Get-TreeSnapshot -Root $copy
         $r = Invoke-Init -Copy $copy -Arguments @("--help")
         $r.ExitCode | Should -Be 0
-        foreach ($word in @("--app-name", "--tenant-id", "--lang", "--extra-langs", "--yes", "--help", "INIT_APP_NAME", "INIT_TENANT_ID", "INIT_DEFAULT_LANG", "INIT_EXTRA_LANGS", "INIT_ASSUME_YES", "INIT_INTERACTIVE")) {
+        foreach ($word in @("--app-name", "--tenant-id", "--client-id", "--lang", "--extra-langs", "--yes", "--help", "kebab-case", "INIT_APP_NAME", "INIT_TENANT_ID", "INIT_CLIENT_ID", "INIT_DEFAULT_LANG", "INIT_EXTRA_LANGS", "INIT_ASSUME_YES", "INIT_INTERACTIVE")) {
             $r.Output | Should -Match ([regex]::Escape($word))
         }
         Get-TreeSnapshot -Root $copy | Should -Be $before
@@ -222,6 +295,23 @@ Describe "init.ps1" -Skip:(-not $script:HasBash) {
         foreach ($removed in @("init.sh", "init.ps1", "scripts/ci", "scripts/tests/Init.Tests.ps1")) {
             Join-Path $copy $removed | Should -Not -Exist
         }
+        Assert-Client -Copy $copy -Kebab "inspections" -ClientId "inspections-frontend-debug"
+        (Get-Content -Raw (Join-Path $copy "src/inspections/src/assets/i18n/de-AT.json") | ConvertFrom-Json).APP.HOME | Should -Be "Startseite"
+        Get-Flags -Copy $copy -Kebab "inspections" | Should -Be @("gb", "at")
+    }
+
+    It "accepts a kebab-case app name, a client id and gives other languages English placeholders" {
+        $copy = New-TemplateCopy
+        $r = Invoke-Init -PowerShell -Copy $copy -Arguments @("-AppName", "ordi-terminplan", "-TenantId", "test-ordi", "-ClientId", "ordi-frontend", "-ExtraLangs", "fr-FR", "-Yes") -Environment @{ INIT_INTERACTIVE = "0" }
+        $r.ExitCode | Should -Be 0 -Because $r.Output
+        $r.Output | Should -Match "OrdiTerminplan \(converted from 'ordi-terminplan'\)"
+        Assert-Tenant -Copy $copy -Kebab "ordi-terminplan" -TenantId "test-ordi"
+        Assert-Client -Copy $copy -Kebab "ordi-terminplan" -ClientId "ordi-frontend"
+        $i18n = Join-Path $copy "src/ordi-terminplan/src/assets/i18n"
+        (Get-Content -Raw (Join-Path $i18n "fr-FR.json") | ConvertFrom-Json).APP.HOME | Should -Be "Home"
+        Join-Path $i18n "de-AT.json" | Should -Not -Exist
+        $r.Output | Should -Match 'Translate the English placeholder texts of: fr-FR'
+        Get-Flags -Copy $copy -Kebab "ordi-terminplan" | Should -Be @("gb", "fr")
     }
 
     It "uses the derived tenant id from the environment variables" {
@@ -234,7 +324,8 @@ Describe "init.ps1" -Skip:(-not $script:HasBash) {
 
     It "refuses <Case> with exit code 2 and changes no file" -ForEach @(
         @{ Case = "a missing app name"; Arguments = @("-Yes"); Expect = "app name is required" }
-        @{ Case = "a non-PascalCase app name"; Arguments = @("-AppName", "inspections", "-Yes"); Expect = "not PascalCase" }
+        @{ Case = "a camelCase app name"; Arguments = @("-AppName", "fieldInspections", "-Yes"); Expect = "neither PascalCase" }
+        @{ Case = "an invalid client id"; Arguments = @("-AppName", "Inspections", "-ClientId", "a/b", "-Yes"); Expect = "client id 'a/b' is invalid" }
         @{ Case = "an invalid tenant id"; Arguments = @("-AppName", "Inspections", "-TenantId", "a/b", "-Yes"); Expect = "tenant id 'a/b' is invalid" }
         @{ Case = "a missing -Yes"; Arguments = @("-AppName", "Inspections"); Expect = "confirmation required" }
     ) {

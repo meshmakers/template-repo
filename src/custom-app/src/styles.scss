@@ -1,3 +1,10 @@
+// Design of the Meshmakers apps (Refinery Studio, Meshmakers App, Energy Community): the Kendo Material theme plus
+// the Octo tokens and component styles of @meshmakers/octo-ui. Do not redefine --kendo-color-* values here; the
+// Octo tokens set them for the dark default and the light theme.
+@use '@progress/kendo-theme-material/scss/index.scss' as *;
+// Resolved through stylePreprocessorOptions.includePaths in angular.json. styles/_index.scss, not _with-kendo.scss:
+// the Kendo theme is imported above already.
+@use 'styles/_index.scss' as octo;
 @use 'tailwindcss';
 
 @use 'flag-icons/sass/flag-icons' with (
@@ -8,37 +15,18 @@
   )
 );
 
+// Kendo first: its own :root rule is overridden by the Octo tokens that follow.
+@include kendo-theme--styles();
+// Octo tokens: :root (brand colours, dark defaults), the prefers-color-scheme light block and [data-theme='light'].
+@include octo.theme();
+// Octo component styles (Kendo bridge) and the overrides that need the tokens.
+@include octo.styles();
+@include octo.theme-overrides();
+
 @theme {
-  --color-primary: #3f51b5;
-  --color-secondary: #ff4081;
-  --color-tertiary: #4caf50;
-  --color-primary-text: #333;
-  --header-line: #e0e0e0;
-}
-
-@layer base {
-  html[data-theme='dark'] {
-    --color-primary: #7986cb;
-    --color-secondary: #ff80ab;
-    --color-tertiary: #81c784;
-    --color-primary-text: #e0e0e0;
-    --header-line: #444;
-  }
-}
-
-:root {
-  --kendo-color-primary: #3f51b5;
-  --kendo-color-primary-hover: #3949ab;
-  --kendo-color-primary-active: #303f9f;
-  --kendo-color-primary-focus: #3f51b5;
-  --kendo-color-primary-emphasis: rgba(63, 81, 181, 0.4);
-  --kendo-color-on-primary: #fff;
-  --kendo-color-primary-subtle: #e8eaf6;
-  --kendo-color-primary-subtle-hover: #c5cae9;
-  --kendo-color-primary-subtle-active: #9fa8da;
-  --kendo-color-on-primary-subtle: #303f9f;
-  --kendo-color-primary-on-surface: #3f51b5;
-  --kendo-color-primary-on-subtle: #303f9f;
+  --color-primary: var(--kendo-color-primary);
+  --color-primary-text: var(--kendo-color-on-app-surface);
+  --header-line: var(--kendo-color-border);
 }
 
 .mm-loading-container {
