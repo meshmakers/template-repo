@@ -7,13 +7,15 @@ import { SAMPLE_ITEMS, SAMPLE_ITEMS_ENABLED } from '../../sample/sample-items.co
 import { HomeComponent } from './home';
 
 describe('HomeComponent sample switch', () => {
-  function create(sampleEnabled: boolean) {
+  // sampleEnabled undefined: no override, the component reads SAMPLE_ITEMS_ENABLED through the token.
+  // The tests must stay green whichever value a developer sets there (README, "With the sample model").
+  function create(sampleEnabled?: boolean) {
     const loadItems = vi.fn(() => of([]));
     TestBed.configureTestingModule({
       imports: [HomeComponent],
       providers: [
         provideTranslateTesting(),
-        { provide: SAMPLE_ITEMS, useValue: sampleEnabled },
+        ...(sampleEnabled === undefined ? [] : [{ provide: SAMPLE_ITEMS, useValue: sampleEnabled }]),
         { provide: ItemsService, useValue: { loadItems } },
       ],
     });
@@ -22,9 +24,12 @@ describe('HomeComponent sample switch', () => {
     return { fixture, loadItems, element: fixture.nativeElement as HTMLElement };
   }
 
-  it('is off by default, so a fresh tenant without the sample CK model works', () => {
-    expect(SAMPLE_ITEMS_ENABLED).toBe(false);
-    expect(TestBed.inject(SAMPLE_ITEMS)).toBe(false);
+  it('follows SAMPLE_ITEMS_ENABLED when nothing overrides the token', () => {
+    const { loadItems, element } = create();
+
+    expect(TestBed.inject(SAMPLE_ITEMS)).toBe(SAMPLE_ITEMS_ENABLED);
+    expect(loadItems).toHaveBeenCalledTimes(SAMPLE_ITEMS_ENABLED ? 1 : 0);
+    expect(element.querySelector('[data-testid="sample-off"]') === null).toBe(SAMPLE_ITEMS_ENABLED);
   });
 
   it('does not query the sample items when the sample is off and shows the hint', () => {

@@ -209,7 +209,8 @@ Invariant: no script deletes or creates a tenant unless every service URL of the
 (`localhost`, loopback IP, `*.127-0-0-1.nip.io`); deleting also needs `-Recreate` (`om_delete_tenants.ps1`: `-Force`),
 and `om_initialize_tenant.ps1` creates only with `-Recreate`. Every refusal happens before the first octo-cli write,
 including `Config`; after `Config` the context is read again and delete/create name it with `--context`. Deleting
-checks `GetTenants` first, uses `Delete --disable-features -y` and fails on error. The scripts follow only the active
+checks `GetTenants` first, uses `Delete --disable-features -y` and fails on error; failures pass on octo-cli's last
+output line, and `om_create_tenants.ps1` does not retry a rejected login (invalid_grant, 401) or a 403 of the create. The scripts follow only the active
 context: with `OCTO_CLI_CONTEXT` set, `Config` refuses and they stop before the first write. Changes to the tenant scripts need a test in
 `scripts/tests/TenantScripts.Tests.ps1`.
 

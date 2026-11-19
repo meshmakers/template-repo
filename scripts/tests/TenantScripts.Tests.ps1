@@ -45,7 +45,7 @@ if ($Tool -eq 'octo-cli' -and $command -eq 'ListContexts') {
     Get-Content -Raw -Path $file
     exit 0
 }
-if ($Tool -eq 'octo-cli' -and $command -eq 'GetTenants') {
+if ($Tool -eq 'octo-cli' -and $command -eq 'GetTenants' -and $env:FAKE_OCTO_FAIL_COMMAND -ne 'GetTenants') {
     if ($env:FAKE_OCTO_GETTENANTS_EXIT) { Write-Output 'error: forbidden'; exit [int]$env:FAKE_OCTO_GETTENANTS_EXIT }
     Write-Output 'Getting tenants (fake)'
     $ids = @($env:FAKE_OCTO_TENANTS -split ',' | Where-Object { $_ })
@@ -56,6 +56,15 @@ if ($Tool -eq 'octo-cli' -and $command -eq 'Config' -and $env:OCTO_CLI_CONTEXT) 
     # Like the real octo-cli: Config refuses a context override (exit 251) and changes nothing.
     Write-Output "'Config' changes a stored context and therefore cannot be combined with --context."
     exit 251
+}
+if ($Tool -eq 'octo-cli' -and $env:FAKE_OCTO_FAIL_COMMAND -and $command -eq $env:FAKE_OCTO_FAIL_COMMAND) {
+    # Fails the first FAKE_OCTO_FAIL_TIMES calls of the command (0: every call) with the given exit code and message.
+    $calls = @(Select-String -Path $env:FAKE_OCTO_LOG -Pattern "^octo-cli -c $command( |$)").Count
+    $times = [int]$env:FAKE_OCTO_FAIL_TIMES
+    if ($times -eq 0 -or $calls -le $times) {
+        Write-Output $env:FAKE_OCTO_FAIL_MESSAGE
+        exit [int]$env:FAKE_OCTO_FAIL_EXIT
+    }
 }
 if ($Tool -eq 'octo-cli' -and $command -eq 'Delete' -and $env:FAKE_OCTO_DELETE_EXIT) {
     Write-Output 'Conflict: capabilities are still enabled'
@@ -108,7 +117,9 @@ exit 0
             # Tenants GetTenants lists (default: the tenant the tests use exists).
             [string[]]$Tenants = @("my-app", "test-ordi"),
             [int]$GetTenantsExit = 0,
-            [int]$DeleteExit = 0
+            [int]$DeleteExit = 0,
+            # Let one octo-cli command fail: @{ Command = 'Create'; Times = 0 (always) or n; Exit = 252; Message = '...' }
+            [hashtable]$Fail
         )
         $id = [guid]::NewGuid().ToString("N")
         $contextsFile = Join-Path $TestDrive "contexts-$id.json"
@@ -129,6 +140,12 @@ exit 0
         $env:FAKE_OCTO_TENANTS = ($Tenants -join ',')
         $env:FAKE_OCTO_GETTENANTS_EXIT = if ($GetTenantsExit) { "$GetTenantsExit" } else { $null }
         $env:FAKE_OCTO_DELETE_EXIT = if ($DeleteExit) { "$DeleteExit" } else { $null }
+        if ($Fail) {
+            $env:FAKE_OCTO_FAIL_COMMAND = $Fail.Command
+            $env:FAKE_OCTO_FAIL_TIMES = "$($Fail.Times)"
+            $env:FAKE_OCTO_FAIL_EXIT = "$($Fail.Exit)"
+            $env:FAKE_OCTO_FAIL_MESSAGE = $Fail.Message
+        }
         try {
             $output = & pwsh -NoProfile -NonInteractive -File (Join-Path $script:Repo "scripts" $Script) @Arguments 2>&1 |
                 ForEach-Object { "$_" }
@@ -143,6 +160,10 @@ exit 0
             $env:FAKE_OCTO_TENANTS = $null
             $env:FAKE_OCTO_GETTENANTS_EXIT = $null
             $env:FAKE_OCTO_DELETE_EXIT = $null
+            $env:FAKE_OCTO_FAIL_COMMAND = $null
+            $env:FAKE_OCTO_FAIL_TIMES = $null
+            $env:FAKE_OCTO_FAIL_EXIT = $null
+            $env:FAKE_OCTO_FAIL_MESSAGE = $null
         }
         $calls = @(Get-Content -Path $log | Where-Object { $_ })
         [pscustomobject]@{
@@ -433,6 +454,15 @@ Describe "om_delete_tenants.ps1" {
         $r.Output | Should -Match 'GetTenants failed'
     }
 
+    It "passes on octo-cli's own reason when the tenant list cannot be read" {
+        $fail = @{ Command = 'GetTenants'; Times = 0; Exit = 252; Message = "Authentication failed: No token for tenant 'octosystem' was issued (identity error: invalid_grant)." }
+        $r = Invoke-TenantScript -Script "om_delete_tenants.ps1" -Arguments @("-TenantId", "my-app", "-Force") -Fail $fail
+        $r.ExitCode | Should -Not -Be 0
+        $r.Calls | Should -Not -Match ' -c Delete( |$)'
+        $r.Output | Should -Match 'GetTenants failed \(exit code 252\): Authentication failed'
+        $r.Output | Should -Match 'invalid_grant'
+    }
+
     It "fails when the delete fails instead of reporting success" {
         $r = Invoke-TenantScript -Script "om_delete_tenants.ps1" -Arguments @("-TenantId", "my-app", "-Force") -DeleteExit 1
         $r.ExitCode | Should -Not -Be 0
@@ -470,6 +500,33 @@ Describe "om_create_tenants.ps1" {
         $r = Invoke-TenantScript -Script "om_create_tenants.ps1" -Arguments @("-TenantId", "my-app")
         $r.ExitCode | Should -Be 0 -Because $r.Output
         $r.Calls | Should -Contain "octo-cli -c Create -tid my-app -db my-app -np --context local"
+    }
+
+    It "stops at once without retries when the create is rejected: <Case>" -ForEach @(
+        @{ Case = "login not accepted (invalid_grant)"; Exit = 252; Message = "Authentication failed: No token for tenant 'octosystem' was issued (identity error: invalid_grant)."; Expect = "No token for tenant 'octosystem'" }
+        @{ Case = "401"; Exit = 1; Message = "Response status code does not indicate success: 401 (Unauthorized)."; Expect = '401' }
+        @{ Case = "403"; Exit = 1; Message = "Response status code does not indicate success: 403 (Forbidden)."; Expect = '403' }
+    ) {
+        $r = Invoke-TenantScript -Script "om_create_tenants.ps1" -Arguments @("-TenantId", "my-app") -Fail @{ Command = 'Create'; Times = 0; Exit = $Exit; Message = $Message }
+        $r.ExitCode | Should -Not -Be 0
+        ($r.Calls -match '^octo-cli -c Create ') | Should -HaveCount 1
+        $r.Output | Should -Match ([regex]::Escape($Expect))
+        $r.Output | Should -Match 'Not retried'
+        $r.Output | Should -Not -Match 'retrying in 10 seconds'
+    }
+
+    It "retries a transient failure of the create" {
+        $fail = @{ Command = 'Create'; Times = 1; Exit = 1; Message = "Conflict: Tenant ID 'my-app' is already in use." }
+        $r = Invoke-TenantScript -Script "om_create_tenants.ps1" -Arguments @("-TenantId", "my-app") -Fail $fail
+        $r.ExitCode | Should -Be 0 -Because $r.Output
+        ($r.Calls -match '^octo-cli -c Create ') | Should -HaveCount 2
+    }
+
+    It "retries a 403 of the user provisioning, which the identity setup of a new tenant can answer for a moment" {
+        $fail = @{ Command = 'ProvisionCurrentUser'; Times = 1; Exit = 1; Message = "Response status code does not indicate success: 403 (Forbidden)." }
+        $r = Invoke-TenantScript -Script "om_create_tenants.ps1" -Arguments @("-TenantId", "my-app") -Fail $fail
+        $r.ExitCode | Should -Be 0 -Because $r.Output
+        ($r.Calls -match '^octo-cli -c ProvisionCurrentUser ') | Should -HaveCount 2
     }
 
     It "refuses a non-local context before any write" {

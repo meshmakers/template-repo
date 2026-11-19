@@ -62,7 +62,9 @@ scripts check every service URL of the active octo-cli context and refuse (non-z
 of them are `localhost`, a loopback address such as `127.0.0.1`, or a host below `127-0-0-1.nip.io`. The name of the
 context does not count. `om_delete_tenants.ps1` follows the same rule and also needs `-Force`; it switches off the
 capabilities of the tenant (Communication, Stream Data, …) before it deletes it, skips a tenant that does not exist and
-stops when the delete fails.
+stops when the delete fails. A login without the rights of the system tenant (for example a tenant-admin client of
+a hosted tenant) makes `-Recreate`, `om_delete_tenants.ps1` and `om_create_tenants.ps1` stop at once with octo-cli's
+own reason ("No token for tenant 'octosystem' was issued …"); only transient errors of the create are retried.
 
 The scripts work on the **active** octo-cli context and point it at the tenant (`octo-cli -c Config`). `--context` and
 `OCTO_CLI_CONTEXT` do not select another context for them: with `OCTO_CLI_CONTEXT` set they stop before the first write.

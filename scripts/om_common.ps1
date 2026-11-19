@@ -112,12 +112,35 @@ function Confirm-OctoContextUnchanged {
     Assert-OctoLocalContext -Context $now -Action $Action
 }
 
+function Get-OctoCliReason {
+    # The last non-empty output line of a failed octo-cli call, formatted as ": <line>" (empty when there is none).
+    # octo-cli prints its error last, after banner and log lines.
+    param([AllowNull()][AllowEmptyCollection()][string[]]$Lines)
+    $last = @($Lines | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }) | Select-Object -Last 1
+    if ($last) { return ": $($last.Trim().TrimEnd('.'))" }
+    return ""
+}
+
+function Test-OctoAuthFailure {
+    # True when octo-cli output says the login was not accepted (invalid_grant, no token, 401) - retrying cannot help.
+    # With -IncludeForbidden also a missing right (403). Leave it off where a 403 can be transient, e.g. the identity
+    # setup of a tenant created a moment ago.
+    param([AllowNull()][AllowEmptyCollection()][string[]]$Lines, [switch]$IncludeForbidden)
+    $pattern = 'invalid_grant|Authentication failed|No token for tenant|Unauthori[sz]ed|\b401\b'
+    if ($IncludeForbidden) { $pattern += '|Forbidden|\b403\b' }
+    return [bool](@($Lines) | Where-Object { $_ -match $pattern })
+}
+
 function Test-OctoTenantExists {
     # True when the tenant is listed by `GetTenants` of the named context, which must point at the system tenant.
     # Throws when the list cannot be read, so a failure never counts as "does not exist".
     param([Parameter(Mandatory)][string]$TenantId, [Parameter(Mandatory)][string]$ContextName)
-    $lines = octo-cli -c GetTenants --context $ContextName
-    if ($LASTEXITCODE -ne 0) { throw "octo-cli GetTenants failed (exit code $LASTEXITCODE). Nothing was deleted." }
+    $lines = @(octo-cli -c GetTenants --context $ContextName 2>&1 | ForEach-Object { "$_" })
+    if ($LASTEXITCODE -ne 0) {
+        # Pass on octo-cli's own reason (e.g. "No token for tenant 'octosystem' was issued"): it says what to do.
+        $reason = Get-OctoCliReason -Lines $lines
+        throw "octo-cli GetTenants failed (exit code $LASTEXITCODE)$reason. Nothing was deleted."
+    }
     # octo-cli prints log lines before the JSON list, only keep the output from the opening '[' onward.
     $start = ($lines | Select-String -Pattern '^\s*\[' | Select-Object -First 1).LineNumber
     if (-not $start) { throw "Could not read the tenant list of octo-cli GetTenants. Nothing was deleted." }
