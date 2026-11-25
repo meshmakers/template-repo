@@ -11,10 +11,17 @@
 # `src/app/sample/graphQL/` and has its own config (codegen.sample.yml, npm run codegen:sample)
 # because its type exists only after the sample CK model is imported.
 #
-# Check: npm run codegen:check runs this config in memory against your schema.json, a committed
-# graphql/ci.schema.json or graphql/ci.schema.graphql (the first that exists; see scripts/codegen-check.js).
+# Check: npm run codegen:check generates this config (and codegen.sample.yml) against your schema.json, a committed
+# graphql/ci.schema.json or graphql/ci.schema.graphql (the first that exists; see scripts/codegen-check.js). The
+# generated files are not committed (.gitignore): CI and the Docker build run the check before lint, test and build.
 # typesSuffix: every generated type and service gets the suffix Dto (GetAssetsQueryDto, GetAssetsDtoGQL).
+# importSchemaTypesFrom: the operation files import the schema types (enums, inputs) from the generated globalTypes.ts.
+# nonOptionalTypename / skipTypeNameForRoot: every object type carries a required __typename, the root query none.
+# inputMaybeValue: nullable variables and input fields are typed T | null, as IQueryVariablesDto of @meshmakers/octo-services.
 overwrite: true
+hooks:
+  afterAllFileWrite:
+    - node scripts/codegen-strip-incremental.mjs
 schema: '${OCTO_GRAPHQL_SCHEMA:schema.json}'
 documents: 'src/app/graphQL/*.graphql'
 generates:
@@ -30,20 +37,55 @@ generates:
         CkEnumId: string
         CkRecordId: string
         CkTypeId: string
+        BigInt: any
+        Byte: any
+        CkVersion: any
+        DateTime: any
+        DateTimeOffset: any
+        Decimal: any
+        LargeBinary: any
+        Long: any
+        RtCkAssociationRoleId: any
+        RtCkEnumId: any
+        RtCkRecordId: any
+        RtCkTypeId: any
+        Seconds: any
+        SimpleScalar: any
+        ULong: any
+        Uri: any
   src/app/graphQL/:
     preset: near-operation-file
     presetConfig:
       extension: .generated.ts
-      baseTypesPath: globalTypes.ts
     plugins:
       - 'typescript-operations'
       - 'typescript-apollo-angular'
     config:
       enumsAsTypes: true
       typesSuffix: 'Dto'
+      importSchemaTypesFrom: 'src/app/graphQL/globalTypes'
+      nonOptionalTypename: true
+      skipTypeNameForRoot: true
+      inputMaybeValue: 'T | null'
       scalars:
         OctoObjectId: string
         CkAttributeId: string
         CkEnumId: string
         CkRecordId: string
         CkTypeId: string
+        BigInt: any
+        Byte: any
+        CkVersion: any
+        DateTime: any
+        DateTimeOffset: any
+        Decimal: any
+        LargeBinary: any
+        Long: any
+        RtCkAssociationRoleId: any
+        RtCkEnumId: any
+        RtCkRecordId: any
+        RtCkTypeId: any
+        Seconds: any
+        SimpleScalar: any
+        ULong: any
+        Uri: any

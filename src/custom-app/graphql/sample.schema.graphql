@@ -1,0 +1,33 @@
+# Hand-derived excerpt of the sample type, for the template's sample query only (src/app/sample/graphQL/).
+# Never add an app type here: app queries use the tenant schema or graphql/ci.schema.json / ci.schema.graphql.
+#
+# Source: src/CustomAppCkModel/ConstructionKit (model CustomApp)
+#   types/Item.yaml               type Item: attributes Name, Code, Quantity, Status
+#   attributes/ItemAttributes.yaml ItemCode (String), ItemQuantity (Double, optional), ItemStatus (Enum)
+#   enums/ItemStatus.yaml          Draft, Active, Archived
+# It holds only what getItems.graphql selects and is read on top of graphql/ci.schema.graphql by codegen.sample.yml.
+# scripts/codegen-check.test.js fails when it drifts from those files.
+# Replace it with generated SDL once a schema generator for a CK model exists.
+
+extend type RuntimeModelQuery {
+  customAppItem(after: String, first: Int, rtId: OctoObjectId, rtIds: [OctoObjectId]): CustomAppItemConnection
+}
+
+type CustomAppItemConnection {
+  items: [CustomAppItem]
+  totalCount: Int
+}
+
+type CustomAppItem {
+  rtId: OctoObjectId!
+  name: String!
+  code: String!
+  quantity: Float
+  status: CustomAppItemStatus!
+}
+
+enum CustomAppItemStatus {
+  ACTIVE
+  ARCHIVED
+  DRAFT
+}

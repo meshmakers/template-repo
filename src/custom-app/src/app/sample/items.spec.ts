@@ -6,7 +6,12 @@ type GqlItems = NonNullable<
 >;
 
 function result(items: GqlItems): GetItemsQueryDto {
-  return { runtime: { customAppItem: { totalCount: items.length, items } } };
+  return {
+    runtime: {
+      __typename: 'RuntimeModelQuery',
+      customAppItem: { __typename: 'CustomAppItemConnection', totalCount: items.length, items },
+    },
+  };
 }
 
 describe('statusLabel', () => {
@@ -32,7 +37,16 @@ describe('statusLabel', () => {
 describe('mapItems', () => {
   it('maps the example item of the blueprint seed', () => {
     const rows = mapItems(
-      result([{ rtId: '6a0000000000000000000001', name: 'Example Item', code: 'ITEM-0001', quantity: 1, status: 'ACTIVE' }]),
+      result([
+        {
+          __typename: 'CustomAppItem',
+          rtId: '6a0000000000000000000001',
+          name: 'Example Item',
+          code: 'ITEM-0001',
+          quantity: 1,
+          status: 'ACTIVE',
+        },
+      ]),
     );
     expect(rows).toEqual([
       { rtId: '6a0000000000000000000001', name: 'Example Item', code: 'ITEM-0001', quantity: 1, status: 'Active' },
@@ -40,7 +54,9 @@ describe('mapItems', () => {
   });
 
   it('skips null entries and keeps a missing quantity as null', () => {
-    const rows = mapItems(result([null, { rtId: '1', name: 'A', code: 'C', status: 'DRAFT' }]));
+    const rows = mapItems(
+      result([null, { __typename: 'CustomAppItem', rtId: '1', name: 'A', code: 'C', quantity: null, status: 'DRAFT' }]),
+    );
     expect(rows).toHaveLength(1);
     expect(rows[0].quantity).toBeNull();
     expect(rows[0].status).toBe('Draft');

@@ -323,7 +323,7 @@ find "$SCRIPT_DIR" \( -name .git -o -name node_modules -o -name .angular -o -nam
 # Fix: CustomApp -> {Name}App was too aggressive for some cases
 # The app.html title, index.html title, etc. should just be {AppName}
 find "$SCRIPT_DIR" \( -name .git -o -name node_modules -o -name .angular -o -name dist \) -prune -o -type f \
-  \( -name '*.html' -o -name '*.json' -o -name '*.md' -o -name '*.ts' -o -name '*.yaml' -o -name '*.yml' -o -name '*.csproj' \) \
+  \( -name '*.html' -o -name '*.json' -o -name '*.md' -o -name '*.ts' -o -name '*.yaml' -o -name '*.yml' -o -name '*.csproj' -o -name '*.graphql' \) \
   -print | while read -r file; do
     sedi "s/${APP_NAME}App/${APP_NAME}/g" "$file" 2>/dev/null || true
   done

@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { check, generateInMemory, resolveSchema, DEFAULT_SCHEMAS } = require('./codegen-check');
+const { check, generateInMemory, resolveSchema, CHECKED_CONFIGS, DEFAULT_SCHEMAS } = require('./codegen-check');
 
 const appDir = path.resolve(__dirname, '..');
 
@@ -20,11 +20,42 @@ test('the fresh tenant schema has no sample type, so it really stands for a fres
   assert.doesNotMatch(schema, /customAppItem/i);
 });
 
-test('the sample query is rejected by the fresh tenant schema', async () => {
-  await assert.rejects(
-    check('codegen.sample.yml', 'graphql/ci.schema.graphql'),
-    /customAppItem/,
-  );
+test('the sample query is rejected by the fresh tenant schema without the sample excerpt', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'codegen-check-'));
+  try {
+    const config = path.join(dir, 'codegen.yml');
+    fs.writeFileSync(
+      config,
+      [
+        "schema: '${OCTO_GRAPHQL_SCHEMA:schema.json}'",
+        "documents: 'src/app/sample/graphQL/*.graphql'",
+        'generates:',
+        `  ${path.join(dir, 'out.ts').replace(/\\/g, '/')}:`,
+        '    plugins:',
+        "      - 'typescript-operations'",
+        '',
+      ].join('\n'),
+    );
+    await assert.rejects(check(config, 'graphql/ci.schema.graphql'), /customAppItem/);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('the sample config reads the fresh tenant schema plus the sample excerpt, whatever schema the check resolves', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'codegen-check-'));
+  try {
+    const unrelatedSchema = path.join(dir, 'unrelated.graphql');
+    fs.writeFileSync(unrelatedSchema, 'type Query { unrelated: Int }\n');
+    const sampleOutputs = await generateInMemory('codegen.sample.yml', unrelatedSchema);
+    assert.ok(sampleOutputs.some((output) => output.filename.endsWith('getItems.generated.ts')));
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('codegen:check generates the app config and the sample config', () => {
+  assert.deepEqual(CHECKED_CONFIGS, ['codegen.yml', 'codegen.sample.yml']);
 });
 
 test('a query that needs a type the schema does not have fails the check', async () => {
@@ -111,19 +142,69 @@ test('generated types and services carry the Dto suffix of codegen.yml', async (
   assert.ok(generated, 'no output for getMaintenanceMode.graphql');
   assert.match(generated.content, /export type GetMaintenanceModeQueryDto\b/);
   assert.match(generated.content, /export class GetMaintenanceModeDtoGQL\b/);
-  // The committed file (self-contained, used by the build) exports the same names.
-  const committed = fs.readFileSync(path.join(appDir, 'src/app/graphQL/getMaintenanceMode.generated.ts'), 'utf8');
-  assert.match(committed, /export type GetMaintenanceModeQueryDto\b/);
-  assert.match(committed, /export class GetMaintenanceModeDtoGQL\b/);
+  assert.match(generated.content, /import type \* as Types from '\.\/globalTypes'/);
 });
 
-test('the sample config uses the Dto suffix too, and the committed sample code exports the Dto names', () => {
+test('the sample config uses the Dto suffix too, and the generated sample code exports the Dto names', async () => {
   for (const file of ['codegen.yml', 'codegen.sample.yml']) {
     const config = fs.readFileSync(path.join(appDir, file), 'utf8');
     assert.doesNotMatch(config, /\btypeSuffix\b/, `${file} uses typeSuffix, which codegen ignores`);
     assert.match(config, /typesSuffix: 'Dto'/);
   }
-  const sample = fs.readFileSync(path.join(appDir, 'src/app/sample/graphQL/getItems.generated.ts'), 'utf8');
-  assert.match(sample, /export type GetItemsQueryDto\b/);
-  assert.match(sample, /export class GetItemsDtoGQL\b/);
+  const outputs = await generateInMemory('codegen.sample.yml', 'graphql/ci.schema.graphql');
+  const sample = outputs.find((output) => output.filename.endsWith('getItems.generated.ts'));
+  assert.ok(sample, 'no output for getItems.graphql');
+  assert.match(sample.content, /export type GetItemsQueryDto\b/);
+  assert.match(sample.content, /export class GetItemsDtoGQL\b/);
+});
+
+test('the sample schema excerpt matches the sample CK model (attributes, optionality and enum values)', () => {
+  // yaml comes with @graphql-codegen/cli, which reads the codegen configs with it.
+  const YAML = require('yaml');
+  const { parse } = require('graphql');
+  // The CK model folder is src/<App>CkModel; init renames it with the app.
+  const srcDir = path.resolve(appDir, '..');
+  const ckModelFolder = fs.readdirSync(srcDir).find((entry) => entry.endsWith('CkModel'));
+  assert.ok(ckModelFolder, `no *CkModel folder in ${srcDir}`);
+  const ckDir = path.join(srcDir, ckModelFolder, 'ConstructionKit');
+  const readCk = (file) => YAML.parse(fs.readFileSync(path.join(ckDir, file), 'utf8'));
+
+  const itemType = readCk('types/Item.yaml').types.find((type) => type.typeId === 'Item');
+  const attributeDefinitions = readCk('attributes/ItemAttributes.yaml').attributes;
+  const statusEnum = readCk('enums/ItemStatus.yaml').enums.find((ckEnum) => ckEnum.enumId === 'ItemStatus');
+
+  // GraphQL names a CK type <model><type>: model CustomApp, type Item -> CustomAppItem.
+  const modelName = readCk('ckModel.yaml').modelId.split('-')[0];
+  const itemTypeName = `${modelName}${itemType.typeId}`;
+  const statusEnumName = `${modelName}${statusEnum.enumId}`;
+  const graphQlTypeOfValueType = { String: 'String', Double: 'Float', Enum: statusEnumName };
+  const expectedFields = { rtId: 'OctoObjectId!' };
+  for (const attribute of itemType.attributes) {
+    const fieldName = attribute.name.charAt(0).toLowerCase() + attribute.name.slice(1);
+    const localId = attribute.id.replace('${this}/', '');
+    const definition = attributeDefinitions.find((candidate) => candidate.id === localId);
+    const valueType = definition ? definition.valueType : 'String';
+    expectedFields[fieldName] = graphQlTypeOfValueType[valueType] + (attribute.isOptional ? '' : '!');
+  }
+
+  const excerpt = parse(fs.readFileSync(path.join(appDir, 'graphql/sample.schema.graphql'), 'utf8'));
+  const definitionNamed = (name) => excerpt.definitions.find((node) => node.name && node.name.value === name);
+  const typeText = (typeNode) =>
+    typeNode.kind === 'NonNullType' ? `${typeText(typeNode.type)}!` : typeNode.name.value;
+
+  const itemDefinition = definitionNamed(itemTypeName);
+  assert.ok(itemDefinition, `graphql/sample.schema.graphql has no type ${itemTypeName}`);
+  for (const field of itemDefinition.fields) {
+    assert.equal(
+      typeText(field.type),
+      expectedFields[field.name.value],
+      `${itemTypeName}.${field.name.value} does not match the CK model`,
+    );
+  }
+
+  const enumDefinition = definitionNamed(statusEnumName);
+  assert.ok(enumDefinition, `graphql/sample.schema.graphql has no enum ${statusEnumName}`);
+  const excerptEnumValues = enumDefinition.values.map((value) => value.name.value).sort();
+  const ckEnumValues = statusEnum.values.map((value) => value.name.toUpperCase()).sort();
+  assert.deepEqual(excerptEnumValues, ckEnumValues);
 });

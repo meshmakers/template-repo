@@ -1,12 +1,22 @@
-# GraphQL code generation for the optional sample (npm run codegen:sample).
+# GraphQL code generation for the optional sample (npm run codegen:sample, part of npm run codegen:check).
 #
-# Needs a tenant schema that contains the sample CK model (`src/CustomAppCkModel`), so import that
-# model into your tenant first and export the schema again. Same schema file as codegen.yml:
-# `schema.json` by default, or the file in OCTO_GRAPHQL_SCHEMA.
+# Schema: the committed fresh-tenant schema graphql/ci.schema.graphql plus graphql/sample.schema.graphql, a small
+# hand-derived excerpt of the sample CK model (`src/CustomAppCkModel`). It does not read your tenant schema, so the
+# sample generates the same code on every machine, in CI and in the Docker build.
 #
-# The generated sample code is committed, so you need this only when you change the sample query.
+# The generated files are not committed (.gitignore). When you change the sample query or the sample CK model, update
+# graphql/sample.schema.graphql too; npm run test:codegen fails when it no longer matches the CK model.
+#
+# importSchemaTypesFrom: the operation files import the schema types (enums, inputs) from the generated globalTypes.ts.
+# nonOptionalTypename / skipTypeNameForRoot: every object type carries a required __typename, the root query none.
+# inputMaybeValue: nullable variables and input fields are typed T | null, as IQueryVariablesDto of @meshmakers/octo-services.
 overwrite: true
-schema: '${OCTO_GRAPHQL_SCHEMA:schema.json}'
+hooks:
+  afterAllFileWrite:
+    - node scripts/codegen-strip-incremental.mjs
+schema:
+  - 'graphql/ci.schema.graphql'
+  - 'graphql/sample.schema.graphql'
 documents: 'src/app/sample/graphQL/*.graphql'
 generates:
   src/app/sample/graphQL/globalTypes.ts:
@@ -21,20 +31,55 @@ generates:
         CkEnumId: string
         CkRecordId: string
         CkTypeId: string
+        BigInt: any
+        Byte: any
+        CkVersion: any
+        DateTime: any
+        DateTimeOffset: any
+        Decimal: any
+        LargeBinary: any
+        Long: any
+        RtCkAssociationRoleId: any
+        RtCkEnumId: any
+        RtCkRecordId: any
+        RtCkTypeId: any
+        Seconds: any
+        SimpleScalar: any
+        ULong: any
+        Uri: any
   src/app/sample/graphQL/:
     preset: near-operation-file
     presetConfig:
       extension: .generated.ts
-      baseTypesPath: globalTypes.ts
     plugins:
       - 'typescript-operations'
       - 'typescript-apollo-angular'
     config:
       enumsAsTypes: true
       typesSuffix: 'Dto'
+      importSchemaTypesFrom: 'src/app/sample/graphQL/globalTypes'
+      nonOptionalTypename: true
+      skipTypeNameForRoot: true
+      inputMaybeValue: 'T | null'
       scalars:
         OctoObjectId: string
         CkAttributeId: string
         CkEnumId: string
         CkRecordId: string
         CkTypeId: string
+        BigInt: any
+        Byte: any
+        CkVersion: any
+        DateTime: any
+        DateTimeOffset: any
+        Decimal: any
+        LargeBinary: any
+        Long: any
+        RtCkAssociationRoleId: any
+        RtCkEnumId: any
+        RtCkRecordId: any
+        RtCkTypeId: any
+        Seconds: any
+        SimpleScalar: any
+        ULong: any
+        Uri: any

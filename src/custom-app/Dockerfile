@@ -45,6 +45,9 @@ RUN npm ci --ignore-scripts
 
 COPY src/custom-app/ ./
 
+# The generated GraphQL code is not committed: generate it from the committed schema before the build.
+RUN npm run codegen:check
+
 FROM build AS publish
 RUN npm run build:prod
 

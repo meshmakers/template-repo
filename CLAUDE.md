@@ -86,7 +86,7 @@ npm run build:prod
 # GraphQL codegen (after adding .graphql files)
 npm run codegen
 
-# CI check: queries valid for a fresh tenant, and its tests
+# Generate the GraphQL code from the committed schema (CI, Docker; once after cloning), and its tests
 npm run codegen:check && npm run test:codegen
 ```
 
@@ -133,12 +133,19 @@ Runtime config loaded from `/assets/config.json`. In Docker, environment variabl
 
 `codegen.yml` covers only `src/app/graphQL/*.graphql`; those queries must work on a fresh tenant (System CKs + Basic).
 Generated types and services carry the suffix `Dto` (`typesSuffix`: `GetAssetsQueryDto`, `GetAssetsDtoGQL`).
-`npm run codegen:check` validates them in memory against the first schema that exists: the argument, `OCTO_GRAPHQL_SCHEMA`,
-the local `schema.json`, a committed `graphql/ci.schema.json` (a partner's own model, introspection JSON), the committed
-`graphql/ci.schema.graphql` (fresh tenant, the template's CI);
-`npm run test:codegen` tests that check. The optional sample (items table on the home page) lives in `src/app/sample/`:
-its query needs the sample CK model, has its own `codegen.sample.yml` (`npm run codegen:sample`) and is switched on
-with `SAMPLE_ITEMS_ENABLED` in `src/app/sample/sample-items.config.ts` (default `false`).
+Codegen is graphql-codegen 8: the operation files import the schema types from the generated `globalTypes.ts`
+(`importSchemaTypesFrom`), every object type has a required `__typename` (`nonOptionalTypename`, the root query none:
+`skipTypeNameForRoot`), all schema scalars are mapped, and `scripts/codegen-strip-incremental.mjs` (hook
+`afterAllFileWrite`) removes the per-file `Incremental` type. **Generated code is not committed** (`globalTypes.ts` and
+`*.generated.ts` are gitignored): `npm run codegen:check` generates `codegen.yml` and `codegen.sample.yml` against the
+first schema that exists: the argument, `OCTO_GRAPHQL_SCHEMA`, the local `schema.json`, a committed
+`graphql/ci.schema.json` (a partner's own model, introspection JSON), the committed `graphql/ci.schema.graphql` (fresh
+tenant, the template's CI). The pipeline (`devops-build/run-tests.yml`) and the Dockerfile run it before lint, tests and
+build; it fails on a query the schema cannot answer. `npm run test:codegen` tests that check. The optional sample
+(items table on the home page) lives in `src/app/sample/`: its query has its own `codegen.sample.yml`
+(`npm run codegen:sample`), which reads `graphql/ci.schema.graphql` plus `graphql/sample.schema.graphql`, a hand-derived
+excerpt of the sample CK model (a test fails when it drifts from `src/CustomAppCkModel`; never put app types there), and
+is switched on with `SAMPLE_ITEMS_ENABLED` in `src/app/sample/sample-items.config.ts` (default `false`).
 
 Example query file (`src/app/graphQL/getAssets.graphql`):
 ```graphql
@@ -208,6 +215,7 @@ src/custom-app/
 │   ├── environments/        — Version info
 │   └── testing/             — Test utilities
 ├── graphql/ci.schema.graphql — Fresh-tenant schema for the codegen CI check
+├── graphql/sample.schema.graphql — Hand-derived excerpt of the sample CK model for codegen.sample.yml
 ├── codegen.yml / codegen.sample.yml
 ├── angular.json
 ├── package.json

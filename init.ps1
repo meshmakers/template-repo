@@ -253,8 +253,8 @@ foreach ($file in $files) {
 }
 
 # Fix: CustomApp -> {Name}App was too aggressive for some cases
-# In .html, .json, .md, .ts, .yaml, .yml, .csproj files revert {Name}App back to {Name}
-$fixExtensions = @('.html', '.json', '.md', '.ts', '.yaml', '.yml', '.csproj')
+# In .html, .json, .md, .ts, .yaml, .yml, .csproj, .graphql files revert {Name}App back to {Name}
+$fixExtensions = @('.html', '.json', '.md', '.ts', '.yaml', '.yml', '.csproj', '.graphql')
 $fixFiles = $files | Where-Object { $_.Extension -in $fixExtensions }
 
 foreach ($file in $fixFiles) {

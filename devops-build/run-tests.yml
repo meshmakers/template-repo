@@ -68,10 +68,12 @@ steps:
         npm ci
       workingDirectory: $(System.DefaultWorkingDirectory)/src/custom-app
 
-  # The app's queries must work on a fresh tenant (only System CKs + Basic): validates
-  # src/app/graphQL/*.graphql against graphql/ci.schema.graphql and fails on a missing type.
+  # The generated GraphQL code is not committed: codegen:check generates it before lint, tests and
+  # build. The app's queries must work on a fresh tenant (only System CKs + Basic), so it runs
+  # against graphql/ci.schema.graphql (graphql/ci.schema.json when an app commits one) and fails on
+  # a missing type; the sample adds graphql/sample.schema.graphql.
   - task: CmdLine@2
-    displayName: 'Check GraphQL documents against a fresh tenant schema'
+    displayName: 'Generate GraphQL code from the committed schema'
     inputs:
       script: npm run codegen:check && npm run test:codegen
       workingDirectory: $(System.DefaultWorkingDirectory)/src/custom-app
