@@ -71,6 +71,9 @@ cd src/custom-app
 # Install dependencies
 npm install
 
+# Generate the GraphQL code (not committed; again after changing a query)
+npm run codegen:check
+
 # Start dev server (default: http://localhost:4200)
 npm start
 

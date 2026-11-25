@@ -67,6 +67,7 @@ Without the files `npm start` stops at once and prints these commands. The files
 ```bash
 cd src/<your-app-name>/
 npm install
+npm run codegen:check   # generates the GraphQL code (not committed)
 npm start
 ```
 
@@ -242,6 +243,7 @@ Your browser has to trust the local root CA of the stack, otherwise the sign-in 
 ```bash
 cd src/<your-app>
 npm install
+npm run codegen:check   # generate the GraphQL code; again after you change a query
 npm start       # https dev server at https://localhost:4300 with hot reload
 npm run lint    # Check code quality
 npm test        # Run unit tests
@@ -290,6 +292,12 @@ tenant (the tenant script does that, see [Set up the tenant](#1-set-up-the-tenan
 update `graphql/sample.schema.graphql` too; `npm run test:codegen` fails when it no longer matches the CK model.
 Never add your own types to that excerpt: your queries use your tenant schema and `graphql/ci.schema.json`.
 
+**Removing the sample**: delete `src/<app>/src/app/sample/` and its use in the home page, `codegen.sample.yml`,
+`graphql/sample.schema.graphql`, the `codegen.sample.yml` entry of `CHECKED_CONFIGS` in `scripts/codegen-check.js`,
+the `codegen:sample` script in `package.json`, and the sample tests in `scripts/codegen-check.test.js` (the ones that
+name the sample, `codegen.sample.yml` or the sample schema excerpt). When you replace the sample type `Item` of the CK
+model with your own types, do the same: the excerpt test needs `Item` and `ItemStatus`.
+
 The generated types and services carry the suffix `Dto` (`typesSuffix` in `codegen.yml`): a query `GetAssets` gives
 `GetAssetsQueryDto` and the injectable service `GetAssetsDtoGQL`. Every object type carries a required `__typename`
 (`nonOptionalTypename`), the root query type none (`skipTypeNameForRoot`), so test fixtures of a query result name it.
@@ -305,7 +313,7 @@ when a query needs a type the schema does not have. It takes the first schema th
 
 SDL (`.graphql`) and introspection JSON (`.json`, as `export_runtime_graphql_sdl` returns it) both work. The output
 names the schema it used. So on your machine, with `schema.json` exported, `npm run codegen:check` generates against
-your own model. For CI and the Docker build, where `schema.json` does not exist, commit the same export as
+your own model. For CI and the Docker build of the pipeline, where `schema.json` does not exist (a `docker build` on your machine copies your local `schema.json` and generates against it), commit the same export as
 `graphql/ci.schema.json` as soon as your queries use your own CK model; without it the pipeline cannot generate them.
 `npm run test:codegen` tests the check itself (and the certificate check of `npm start`); the pipeline runs both
 before lint. Its tests check your queries against that same CI schema, and use `graphql/ci.schema.graphql` as the
