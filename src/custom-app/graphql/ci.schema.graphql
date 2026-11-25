@@ -1,5 +1,5 @@
 # GraphQL schema of a fresh tenant: only the System Construction Kits and Basic, no app model.
-# CI runs codegen.yml against this file (npm run codegen:check), so a query in src/app/graphQL/
+# CI generates codegen.yml against this file (npm run codegen), so a query in src/app/graphQL/
 # that needs a type a fresh tenant does not have fails the build.
 # Once your app queries its own CK model, replace this file with the schema of a tenant that
 # has that model, as SDL (the SDL download of the tenant; the introspection JSON of

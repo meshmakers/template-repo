@@ -1,27 +1,19 @@
-# GraphQL code generation for the app's own queries (npm run codegen).
+# GraphQL code generation for the app's own queries in src/app/graphQL/*.graphql.
 #
-# Schema: the GraphQL schema of your tenant, by default `schema.json` in this folder - the
-# introspection JSON that the MCP tool `export_runtime_graphql_sdl` returns. Point it at another
-# file with the environment variable OCTO_GRAPHQL_SCHEMA, for example an SDL download:
-#   OCTO_GRAPHQL_SCHEMA=schema.graphql npm run codegen
-# The file is tenant specific and not committed (.gitignore).
+# npm run codegen generates this config and codegen.sample.yml (scripts/codegen.js); npm start, npm test, npm run lint
+# and the builds run it first, and so do the pipeline and the Docker build. The generated files are not committed.
 #
-# Documents: only `src/app/graphQL/*.graphql`. They must use types every tenant has (the System
-# CKs), so codegen also runs on a fresh tenant. The sample query of the template lives in
-# `src/app/sample/graphQL/` and has its own config (codegen.sample.yml, npm run codegen:sample)
-# because its type exists only after the sample CK model is imported.
+# Schema, the first that exists: OCTO_GRAPHQL_SCHEMA, schema.json (your tenant's export, gitignored),
+# graphql/ci.schema.json (your model, committed for CI), graphql/ci.schema.graphql (a fresh tenant, committed).
+# The queries here must work on a fresh tenant (System CKs and Basic) until you commit graphql/ci.schema.json.
 #
-# Check: npm run codegen:check generates this config (and codegen.sample.yml) against your schema.json, a committed
-# graphql/ci.schema.json or graphql/ci.schema.graphql (the first that exists; see scripts/codegen-check.js). The
-# generated files are not committed (.gitignore): CI and the Docker build run the check before lint, test and build.
-# typesSuffix: every generated type and service gets the suffix Dto (GetAssetsQueryDto, GetAssetsDtoGQL).
-# importSchemaTypesFrom: the operation files import the schema types (enums, inputs) from the generated globalTypes.ts.
+# typesSuffix: generated types and services end in Dto (GetAssetsQueryDto, GetAssetsDtoGQL).
+# onlyOperationTypes: globalTypes.ts holds only the enums and inputs the operations use.
+# importSchemaTypesFrom: the operation files import those types from globalTypes.ts.
 # nonOptionalTypename / skipTypeNameForRoot: every object type carries a required __typename, the root query none.
 # inputMaybeValue: nullable variables and input fields are typed T | null, as IQueryVariablesDto of @meshmakers/octo-services.
+# scalars: ids are strings, every other scalar any.
 overwrite: true
-hooks:
-  afterAllFileWrite:
-    - node scripts/codegen-strip-incremental.mjs
 schema: '${OCTO_GRAPHQL_SCHEMA:schema.json}'
 documents: 'src/app/graphQL/*.graphql'
 generates:
@@ -31,12 +23,13 @@ generates:
     config:
       enumsAsTypes: true
       typesSuffix: 'Dto'
+      onlyOperationTypes: true
       scalars:
         OctoObjectId: string
-        CkAttributeId: string
-        CkEnumId: string
-        CkRecordId: string
-        CkTypeId: string
+        RtCkAssociationRoleId: string
+        RtCkEnumId: string
+        RtCkRecordId: string
+        RtCkTypeId: string
         BigInt: any
         Byte: any
         CkVersion: any
@@ -45,10 +38,6 @@ generates:
         Decimal: any
         LargeBinary: any
         Long: any
-        RtCkAssociationRoleId: any
-        RtCkEnumId: any
-        RtCkRecordId: any
-        RtCkTypeId: any
         Seconds: any
         SimpleScalar: any
         ULong: any
@@ -69,10 +58,10 @@ generates:
       inputMaybeValue: 'T | null'
       scalars:
         OctoObjectId: string
-        CkAttributeId: string
-        CkEnumId: string
-        CkRecordId: string
-        CkTypeId: string
+        RtCkAssociationRoleId: string
+        RtCkEnumId: string
+        RtCkRecordId: string
+        RtCkTypeId: string
         BigInt: any
         Byte: any
         CkVersion: any
@@ -81,10 +70,6 @@ generates:
         Decimal: any
         LargeBinary: any
         Long: any
-        RtCkAssociationRoleId: any
-        RtCkEnumId: any
-        RtCkRecordId: any
-        RtCkTypeId: any
         Seconds: any
         SimpleScalar: any
         ULong: any

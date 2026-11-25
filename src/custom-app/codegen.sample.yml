@@ -1,19 +1,12 @@
-# GraphQL code generation for the optional sample (npm run codegen:sample, part of npm run codegen:check).
+# GraphQL code generation for the optional sample query in src/app/sample/graphQL/*.graphql.
 #
-# Schema: the committed fresh-tenant schema graphql/ci.schema.graphql plus graphql/sample.schema.graphql, a small
-# hand-derived excerpt of the sample CK model (`src/CustomAppCkModel`). It does not read your tenant schema, so the
-# sample generates the same code on every machine, in CI and in the Docker build.
+# npm run codegen generates it together with codegen.yml. Its schema is fixed: graphql/ci.schema.graphql plus
+# graphql/sample.schema.graphql, a hand-derived excerpt of the sample CK model, so it ignores your tenant schema and
+# generates the same code everywhere. When you change the sample query or the sample CK model, update the excerpt;
+# npm run test:codegen fails when it no longer matches the CK model. The generated files are not committed.
 #
-# The generated files are not committed (.gitignore). When you change the sample query or the sample CK model, update
-# graphql/sample.schema.graphql too; npm run test:codegen fails when it no longer matches the CK model.
-#
-# importSchemaTypesFrom: the operation files import the schema types (enums, inputs) from the generated globalTypes.ts.
-# nonOptionalTypename / skipTypeNameForRoot: every object type carries a required __typename, the root query none.
-# inputMaybeValue: nullable variables and input fields are typed T | null, as IQueryVariablesDto of @meshmakers/octo-services.
+# Options as in codegen.yml.
 overwrite: true
-hooks:
-  afterAllFileWrite:
-    - node scripts/codegen-strip-incremental.mjs
 schema:
   - 'graphql/ci.schema.graphql'
   - 'graphql/sample.schema.graphql'
@@ -25,12 +18,13 @@ generates:
     config:
       enumsAsTypes: true
       typesSuffix: 'Dto'
+      onlyOperationTypes: true
       scalars:
         OctoObjectId: string
-        CkAttributeId: string
-        CkEnumId: string
-        CkRecordId: string
-        CkTypeId: string
+        RtCkAssociationRoleId: string
+        RtCkEnumId: string
+        RtCkRecordId: string
+        RtCkTypeId: string
         BigInt: any
         Byte: any
         CkVersion: any
@@ -39,10 +33,6 @@ generates:
         Decimal: any
         LargeBinary: any
         Long: any
-        RtCkAssociationRoleId: any
-        RtCkEnumId: any
-        RtCkRecordId: any
-        RtCkTypeId: any
         Seconds: any
         SimpleScalar: any
         ULong: any
@@ -63,10 +53,10 @@ generates:
       inputMaybeValue: 'T | null'
       scalars:
         OctoObjectId: string
-        CkAttributeId: string
-        CkEnumId: string
-        CkRecordId: string
-        CkTypeId: string
+        RtCkAssociationRoleId: string
+        RtCkEnumId: string
+        RtCkRecordId: string
+        RtCkTypeId: string
         BigInt: any
         Byte: any
         CkVersion: any
@@ -75,10 +65,6 @@ generates:
         Decimal: any
         LargeBinary: any
         Long: any
-        RtCkAssociationRoleId: any
-        RtCkEnumId: any
-        RtCkRecordId: any
-        RtCkTypeId: any
         Seconds: any
         SimpleScalar: any
         ULong: any

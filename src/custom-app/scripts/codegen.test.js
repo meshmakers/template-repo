@@ -1,10 +1,10 @@
-// Tests of scripts/codegen-check.js (node --test scripts/, npm run test:codegen).
+// Tests of scripts/codegen.js (npm run test:codegen).
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { check, generateInMemory, resolveSchema, CHECKED_CONFIGS, DEFAULT_SCHEMAS } = require('./codegen-check');
+const { check, generateInMemory, resolveSchema, CODEGEN_CONFIGS, DEFAULT_SCHEMAS } = require('./codegen');
 
 const appDir = path.resolve(__dirname, '..');
 
@@ -21,7 +21,7 @@ test('the fresh tenant schema has no sample type, so it really stands for a fres
 });
 
 test('the sample query is rejected by the fresh tenant schema without the sample excerpt', async () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'codegen-check-'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'codegen-test-'));
   try {
     const config = path.join(dir, 'codegen.yml');
     fs.writeFileSync(
@@ -43,7 +43,7 @@ test('the sample query is rejected by the fresh tenant schema without the sample
 });
 
 test('the sample config reads the fresh tenant schema plus the sample excerpt, whatever schema the check resolves', async () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'codegen-check-'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'codegen-test-'));
   try {
     const unrelatedSchema = path.join(dir, 'unrelated.graphql');
     fs.writeFileSync(unrelatedSchema, 'type Query { unrelated: Int }\n');
@@ -54,12 +54,12 @@ test('the sample config reads the fresh tenant schema plus the sample excerpt, w
   }
 });
 
-test('codegen:check generates the app config and the sample config', () => {
-  assert.deepEqual(CHECKED_CONFIGS, ['codegen.yml', 'codegen.sample.yml']);
+test('npm run codegen generates the app config and the sample config', () => {
+  assert.deepEqual(CODEGEN_CONFIGS, ['codegen.yml', 'codegen.sample.yml']);
 });
 
 test('a query that needs a type the schema does not have fails the check', async () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'codegen-check-'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'codegen-test-'));
   try {
     fs.mkdirSync(path.join(dir, 'graphQL'));
     fs.writeFileSync(
@@ -92,7 +92,7 @@ test('a missing schema file fails with a clear message', async () => {
 test('an introspection JSON schema (as the MCP tool export_runtime_graphql_sdl returns it) is accepted', async () => {
   const { buildSchema, introspectionFromSchema } = require('graphql');
   const sdl = fs.readFileSync(path.join(appDir, 'graphql/ci.schema.graphql'), 'utf8');
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'codegen-check-'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'codegen-test-'));
   try {
     const file = path.join(dir, 'schema.json');
     fs.writeFileSync(file, JSON.stringify({ data: introspectionFromSchema(buildSchema(sdl)) }));

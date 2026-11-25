@@ -1,25 +1,21 @@
 #!/usr/bin/env node
 /**
- * Generates the app's GraphQL code from a GraphQL schema and fails when a document is not valid against it.
+ * npm run codegen: generates the app's GraphQL code (codegen.yml and codegen.sample.yml) and fails when a document is
+ * not valid against the schema. npm start, npm test, npm run lint and the builds run it first; the generated files are
+ * not committed.
  *
- * Runs a codegen config (default codegen.yml) against a schema and writes its outputs, the afterAllFileWrite hook
- * included. The generated files are not committed (.gitignore): CI and the Docker build run this before lint, test
- * and build, so all generated code comes from a committed schema. A query that needs a type the schema does not have
- * fails with codegen's validation error.
- *
- * Which schema (the first that applies):
- *   1. the second argument:            node scripts/codegen-check.js codegen.yml schema.json
- *   2. the environment variable OCTO_GRAPHQL_SCHEMA (the same variable npm run codegen reads)
+ * Which schema codegen.yml reads (the first that applies; codegen.sample.yml has its own fixed schema):
+ *   1. the second argument:            node scripts/codegen.js codegen.yml schema.json
+ *   2. the environment variable OCTO_GRAPHQL_SCHEMA
  *   3. schema.json in this folder: the introspection JSON of your own tenant (MCP tool export_runtime_graphql_sdl),
  *      gitignored, so this applies on your machine only
  *   4. graphql/ci.schema.json: the introspection JSON of a tenant with your own model, committed for CI
  *   5. graphql/ci.schema.graphql: the committed SDL of a fresh tenant (System CKs and Basic), the template's own CI
- * Both SDL (.graphql) and introspection JSON (.json) files are accepted. codegen.sample.yml adds its own committed
- * excerpt graphql/sample.schema.graphql to that schema.
+ * Both SDL (.graphql) and introspection JSON (.json) files are accepted.
  *
  * Usage:
- *   node scripts/codegen-check.js [config] [schema]
- *   npm run codegen:check
+ *   node scripts/codegen.js [config] [schema]
+ *   npm run codegen
  *
  * Exit codes: 0 generated, 1 invalid or the generation could not run.
  */
@@ -86,8 +82,8 @@ async function check(configFile, schemaFile) {
   return outputs.length;
 }
 
-/** The configs npm run codegen:check generates, in this order. */
-const CHECKED_CONFIGS = ['codegen.yml', 'codegen.sample.yml'];
+/** The configs npm run codegen generates, in this order. */
+const CODEGEN_CONFIGS = ['codegen.yml', 'codegen.sample.yml'];
 
 async function generateAll(configFiles, schemaFile) {
   const counts = [];
@@ -99,17 +95,17 @@ async function generateAll(configFiles, schemaFile) {
 }
 
 if (require.main === module) {
-  const configFiles = process.argv[2] ? [process.argv[2]] : CHECKED_CONFIGS;
+  const configFiles = process.argv[2] ? [process.argv[2]] : CODEGEN_CONFIGS;
   const { schema: schemaFile, source } = resolveSchema(process.argv[3]);
   generateAll(configFiles, schemaFile)
     .then((counts) => {
-      console.log(`codegen check passed against ${schemaFile} (${source}): ${counts.join(', ')}`);
+      console.log(`codegen: generated against ${schemaFile} (${source}): ${counts.join(', ')}`);
     })
     .catch((error) => {
-      console.error(`codegen check failed: ${configFiles.join(', ')} against ${schemaFile} (${source})`);
+      console.error(`codegen failed: ${configFiles.join(', ')} against ${schemaFile} (${source})`);
       console.error(error && error.message ? error.message : error);
       process.exit(1);
     });
 }
 
-module.exports = { check, generateInMemory, generateToFiles, resolveSchema, CHECKED_CONFIGS, DEFAULT_SCHEMAS };
+module.exports = { check, generateInMemory, generateToFiles, resolveSchema, CODEGEN_CONFIGS, DEFAULT_SCHEMAS };
