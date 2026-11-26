@@ -1,7 +1,7 @@
 # GraphQL code generation for the app's own queries in src/app/graphQL/*.graphql (npm run codegen).
 #
-# Run npm run codegen (and npm run codegen:sample for the sample) after cloning and after changing a .graphql file;
-# CI and the Docker build run both. The generated files are not committed.
+# Run npm run codegen after cloning and after changing a .graphql file; CI and the Docker build run it. The generated
+# files are not committed. The sample's code is committed (codegen.sample.yml).
 #
 # Schema: graphql/ci.schema.graphql, the committed schema of a fresh tenant (System CKs and Basic). Generate against
 # another file with OCTO_GRAPHQL_SCHEMA, for example your tenant's export: OCTO_GRAPHQL_SCHEMA=schema.json npm run codegen.

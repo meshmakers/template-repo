@@ -14,7 +14,7 @@
 #           default client id in every place the app and the scripts read them, languages (German de-AT texts,
 #           flags), template-only files removed
 #        4. tests of the tenant scripts (Pester) in the copy, when pwsh is installed
-#        5. in the generated app: npm ci, codegen + codegen:sample + test:codegen, lint, test:ci, production build
+#        5. in the generated app: npm ci, codegen + test:codegen, lint, test:ci, production build
 #           (npm run build:prod with TELERIK_LICENSE set; without it ng build --configuration production)
 #        6. design of the built app: Kendo theme rules (.k-) and the Octo tokens of @meshmakers/octo-ui in the styles
 # Needs bash, git, python3, node/npm (step 5) and network access to the npm registry. Exits non-zero on the first
@@ -144,7 +144,6 @@ step "5. Build, lint and tests of the generated app"
 cd "$APP"
 npm ci
 npm run codegen
-npm run codegen:sample
 npm run test:codegen
 npm run lint
 npm run test:ci

@@ -72,7 +72,7 @@ cd src/custom-app
 npm install
 
 # Generate the GraphQL code (after cloning and after changing a .graphql file)
-npm run codegen && npm run codegen:sample
+npm run codegen
 
 # Start dev server (default: http://localhost:4200)
 npm start
@@ -86,7 +86,7 @@ npm test
 # Production build
 npm run build:prod
 
-# Tests of the sample schema excerpt and the certificate check
+# Tests of the certificate check
 npm run test:codegen
 ```
 
@@ -131,15 +131,15 @@ Runtime config loaded from `/assets/config.json`. In Docker, environment variabl
 3. Run `npm run codegen`
 4. Import generated services in your components
 
-GraphQL code is generated, not committed: `globalTypes.ts` and the `*.generated.ts` files are gitignored. After cloning and
-after changing a `.graphql` file run `npm run codegen` (and `npm run codegen:sample` for the sample); CI and the Docker
-build run them. `codegen.yml` reads the committed `graphql/ci.schema.graphql` (a fresh tenant) unless
-`OCTO_GRAPHQL_SCHEMA` names another file (your tenant's `schema.json` export, gitignored); once the queries use your own
-model, commit that export as `graphql/ci.schema.json` and point the default in `codegen.yml` at it. The sample reads
-`graphql/ci.schema.graphql` plus `graphql/sample.schema.graphql`, a hand-derived excerpt of the sample CK model
-(`npm run test:codegen` fails when it drifts from `src/CustomAppCkModel`; never put app types there); it is switched on
-with `SAMPLE_ITEMS_ENABLED` in `src/app/sample/sample-items.config.ts` (default `false`). Generated types and services
-end in `Dto`, ids are `string`, every object type has a required `__typename`.
+GraphQL code of the app is generated, not committed: `globalTypes.ts` and the `*.generated.ts` files of `src/app/graphQL/`
+are gitignored. After cloning and after changing a `.graphql` file run `npm run codegen`; CI and the Docker build run it.
+`codegen.yml` reads the committed `graphql/ci.schema.graphql` (a fresh tenant) unless `OCTO_GRAPHQL_SCHEMA` names another
+file (your tenant's `schema.json` export, gitignored); once the queries use your own model, commit that export as
+`graphql/ci.schema.json` and point the default in `codegen.yml` at it. The optional sample (items table on the home page)
+lives in `src/app/sample/`: its generated code is committed, `codegen.sample.yml` (`npm run codegen:sample`) regenerates
+it by hand against a tenant schema that has the sample CK model, and it is switched on with `SAMPLE_ITEMS_ENABLED` in
+`src/app/sample/sample-items.config.ts` (default `false`). Generated types and services end in `Dto`, ids are `string`,
+every object type has a required `__typename`.
 
 Example query file (`src/app/graphQL/getAssets.graphql`):
 ```graphql
@@ -209,7 +209,6 @@ src/custom-app/
 │   ├── environments/        — Version info
 │   └── testing/             — Test utilities
 ├── graphql/ci.schema.graphql — Fresh-tenant schema for the codegen CI check
-├── graphql/sample.schema.graphql — Hand-derived excerpt of the sample CK model for codegen.sample.yml
 ├── codegen.yml / codegen.sample.yml
 ├── angular.json
 ├── package.json

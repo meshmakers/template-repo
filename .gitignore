@@ -431,7 +431,6 @@ test-results/
 src/custom-app/src/app/graphQL/globalTypes.ts
 src/custom-app/src/app/graphQL/*.generated.ts
 src/custom-app/src/app/sample/graphQL/globalTypes.ts
-src/custom-app/src/app/sample/graphQL/*.generated.ts
 # Tenant-specific GraphQL schema downloads read by codegen (graphql/ci.schema.graphql is committed)
 src/custom-app/schema.json
 src/custom-app/schema.graphql

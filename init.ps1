@@ -253,8 +253,8 @@ foreach ($file in $files) {
 }
 
 # Fix: CustomApp -> {Name}App was too aggressive for some cases
-# In .html, .json, .md, .ts, .yaml, .yml, .csproj, .graphql files revert {Name}App back to {Name}
-$fixExtensions = @('.html', '.json', '.md', '.ts', '.yaml', '.yml', '.csproj', '.graphql')
+# In .html, .json, .md, .ts, .yaml, .yml, .csproj files revert {Name}App back to {Name}
+$fixExtensions = @('.html', '.json', '.md', '.ts', '.yaml', '.yml', '.csproj')
 $fixFiles = $files | Where-Object { $_.Extension -in $fixExtensions }
 
 foreach ($file in $fixFiles) {
@@ -436,7 +436,7 @@ Write-Host "Next steps:"
 Write-Host "  1. If step 5 could not create the certificates: pwsh scripts/generate-dev-certs.ps1 (needed by npm start)"
 Write-Host "  2. cd src/$KebabCase"
 Write-Host "  3. npm install"
-Write-Host "  4. npm run codegen; npm run codegen:sample   (the GraphQL code is not committed)"
+Write-Host "  4. npm run codegen   (the GraphQL code is not committed)"
 Write-Host "  5. npm start"
 Write-Host ""
 Write-Host "See README.md for full documentation."
