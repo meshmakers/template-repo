@@ -71,6 +71,9 @@ cd src/custom-app
 # Install dependencies
 npm install
 
+# Generate the GraphQL code (after cloning and after changing a .graphql file)
+npm run codegen && npm run codegen:sample
+
 # Start dev server (default: http://localhost:4200)
 npm start
 
@@ -83,8 +86,7 @@ npm test
 # Production build
 npm run build:prod
 
-# GraphQL code (start, test, lint and the builds run it first), and the tests of the codegen driver
-npm run codegen
+# Tests of the sample schema excerpt and the certificate check
 npm run test:codegen
 ```
 
@@ -129,18 +131,15 @@ Runtime config loaded from `/assets/config.json`. In Docker, environment variabl
 3. Run `npm run codegen`
 4. Import generated services in your components
 
-GraphQL code is generated, not committed: `globalTypes.ts` and the `*.generated.ts` files are gitignored.
-`npm run codegen` (`scripts/codegen.js`) generates `codegen.yml` (the app's queries in `src/app/graphQL/`) and
-`codegen.sample.yml` (the sample) and fails on a query the schema cannot answer. `prestart`, `pretest`, `prelint`,
-`prebuild` and `prebuild:prod` run it, the pipeline (`devops-build/run-tests.yml`) runs it after `npm ci`, and the Docker
-build gets it through `prebuild:prod`. Schema for `codegen.yml`, the first that exists: `OCTO_GRAPHQL_SCHEMA`,
-`schema.json` (your tenant's export, gitignored), `graphql/ci.schema.json` (your model, committed for CI),
-`graphql/ci.schema.graphql` (a fresh tenant, committed). To refresh it, export the tenant schema again
-(`export_runtime_graphql_sdl`) and commit it as `graphql/ci.schema.json` once your queries use your own model. The
-sample reads `graphql/ci.schema.graphql` plus `graphql/sample.schema.graphql`, a hand-derived excerpt of the sample CK
-model (`npm run test:codegen` fails when it drifts from `src/CustomAppCkModel`; never put app types there); it is
-switched on with `SAMPLE_ITEMS_ENABLED` in `src/app/sample/sample-items.config.ts` (default `false`). Generated types
-and services end in `Dto`, ids are `string`, every object type has a required `__typename`.
+GraphQL code is generated, not committed: `globalTypes.ts` and the `*.generated.ts` files are gitignored. After cloning and
+after changing a `.graphql` file run `npm run codegen` (and `npm run codegen:sample` for the sample); CI and the Docker
+build run them. `codegen.yml` reads the committed `graphql/ci.schema.graphql` (a fresh tenant) unless
+`OCTO_GRAPHQL_SCHEMA` names another file (your tenant's `schema.json` export, gitignored); once the queries use your own
+model, commit that export as `graphql/ci.schema.json` and point the default in `codegen.yml` at it. The sample reads
+`graphql/ci.schema.graphql` plus `graphql/sample.schema.graphql`, a hand-derived excerpt of the sample CK model
+(`npm run test:codegen` fails when it drifts from `src/CustomAppCkModel`; never put app types there); it is switched on
+with `SAMPLE_ITEMS_ENABLED` in `src/app/sample/sample-items.config.ts` (default `false`). Generated types and services
+end in `Dto`, ids are `string`, every object type has a required `__typename`.
 
 Example query file (`src/app/graphQL/getAssets.graphql`):
 ```graphql

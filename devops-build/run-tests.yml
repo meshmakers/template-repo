@@ -68,13 +68,12 @@ steps:
         npm ci
       workingDirectory: $(System.DefaultWorkingDirectory)/src/custom-app
 
-  # The generated GraphQL code is not committed: npm run codegen generates it from the committed
-  # schema (graphql/ci.schema.json when an app commits one, else graphql/ci.schema.graphql) and
-  # fails on a query the schema cannot answer.
+  # The generated GraphQL code is not committed: generate it from the committed schemas before lint,
+  # tests and build. A query the schema cannot answer fails the build here.
   - task: CmdLine@2
     displayName: 'Generate GraphQL code from the committed schema'
     inputs:
-      script: npm run codegen && npm run test:codegen
+      script: npm run codegen && npm run codegen:sample && npm run test:codegen
       workingDirectory: $(System.DefaultWorkingDirectory)/src/custom-app
 
   - task: CmdLine@2

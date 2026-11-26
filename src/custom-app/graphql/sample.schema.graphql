@@ -6,7 +6,7 @@
 #   attributes/ItemAttributes.yaml ItemCode (String), ItemQuantity (Double, optional), ItemStatus (Enum)
 #   enums/ItemStatus.yaml          Draft, Active, Archived
 # It holds only what getItems.graphql selects and is read on top of graphql/ci.schema.graphql by codegen.sample.yml.
-# scripts/codegen.test.js fails when it drifts from those files.
+# scripts/sample-schema.test.js fails when it drifts from those files.
 # Replace it with generated SDL once a schema generator for a CK model exists.
 
 extend type RuntimeModelQuery {

@@ -45,6 +45,8 @@ RUN npm ci --ignore-scripts
 
 COPY src/custom-app/ ./
 
+RUN npm run codegen && npm run codegen:sample
+
 FROM build AS publish
 RUN npm run build:prod
 

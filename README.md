@@ -67,7 +67,8 @@ Without the files `npm start` stops at once and prints these commands. The files
 ```bash
 cd src/<your-app-name>/
 npm install
-npm start   # generates the GraphQL code first
+npm run codegen && npm run codegen:sample   # the GraphQL code is not committed
+npm start
 ```
 
 See **Local Development** below for the tenant, the configuration and the Telerik licence the dev server needs.
@@ -242,6 +243,7 @@ Your browser has to trust the local root CA of the stack, otherwise the sign-in 
 ```bash
 cd src/<your-app>
 npm install
+npm run codegen && npm run codegen:sample   # after cloning and after changing a .graphql file
 npm start       # https dev server at https://localhost:4300 with hot reload
 npm run lint    # Check code quality
 npm test        # Run unit tests
@@ -264,36 +266,32 @@ Everything of the sample lives in `src/<app>/src/app/sample/`. To drop it, delet
 ### 5. Generate the GraphQL types
 
 The GraphQL code is generated, not committed: `globalTypes.ts` and one `*.generated.ts` per query are ignored by git.
-`npm run codegen` in `src/<app>` generates them; `npm start`, `npm test`, `npm run lint` and the builds run it first, the
-pipeline runs it after `npm ci`, and the Docker build runs it through `npm run build:prod`. A query the schema cannot
-answer fails it.
+After cloning and after changing a `.graphql` file run `npm run codegen` (and `npm run codegen:sample` for the sample)
+in `src/<app>`; CI and the Docker build run them. A query the schema cannot answer fails it.
 
-**Schema.** `codegen.yml` reads the first that exists: the file in `OCTO_GRAPHQL_SCHEMA`; `src/<app>/schema.json`, the
-export of your own tenant (with your AI agent, the MCP tool `export_runtime_graphql_sdl` returns it; gitignored);
-`src/<app>/graphql/ci.schema.json`, an export you commit for CI; `src/<app>/graphql/ci.schema.graphql`, the committed
-schema of a fresh tenant (only the System Construction Kits and Basic). SDL and introspection JSON both work. Your own
-queries go into `src/<app>/src/app/graphQL/`. As soon as they use your own CK model, commit your tenant's export as
-`graphql/ci.schema.json`, or the pipeline cannot generate them; refresh it the same way when the model changes. Keep
-`graphql/ci.schema.graphql`: the tests use it as the fresh tenant schema.
+**Schema.** `codegen.yml` reads `src/<app>/graphql/ci.schema.graphql`, the committed schema of a fresh tenant (only the
+System Construction Kits and Basic). To generate against your own tenant, export its schema (with your AI agent, the
+MCP tool `export_runtime_graphql_sdl` returns it) as `src/<app>/schema.json` (gitignored) and run
+`OCTO_GRAPHQL_SCHEMA=schema.json npm run codegen`. Your own queries go into `src/<app>/src/app/graphQL/`. As soon as they
+use your own CK model, commit that export as `graphql/ci.schema.json` and point the default schema in `codegen.yml` at
+it, or the pipeline cannot generate them; refresh it the same way when the model changes. Keep
+`graphql/ci.schema.graphql`: the sample and its test use it as the fresh tenant schema.
 
-**The sample** (`src/<app>/src/app/sample/`) has its own config, `codegen.sample.yml`, which `npm run codegen` runs
-too. It reads `graphql/ci.schema.graphql` plus `graphql/sample.schema.graphql`, a small hand-derived excerpt of the
-sample CK model, so it generates the same code everywhere. To show the items on the home page, import the sample CK
-model into your tenant (the tenant script does that, see [Set up the tenant](#1-set-up-the-tenant)) and set
-`SAMPLE_ITEMS_ENABLED` to `true` in `src/<app>/src/app/sample/sample-items.config.ts`. When you change the sample query
-or the sample CK model, update the excerpt; `npm run test:codegen` fails when it no longer matches the CK model. Never
-add your own types to it.
+**The sample** (`src/<app>/src/app/sample/`) has its own config, `codegen.sample.yml` (`npm run codegen:sample`). It reads
+`graphql/ci.schema.graphql` plus `graphql/sample.schema.graphql`, a small hand-derived excerpt of the sample CK model,
+so it generates the same code everywhere. To show the items on the home page, import the sample CK model into your
+tenant (the tenant script does that, see [Set up the tenant](#1-set-up-the-tenant)) and set `SAMPLE_ITEMS_ENABLED` to
+`true` in `src/<app>/src/app/sample/sample-items.config.ts`. When you change the sample query or the sample CK model,
+update the excerpt; `npm run test:codegen` fails when it no longer matches the CK model. Never add your own types to it.
 
 **Removing the sample**: delete `src/<app>/src/app/sample/` and its use in the home page, `codegen.sample.yml`,
-`graphql/sample.schema.graphql`, the `codegen.sample.yml` entry of `CODEGEN_CONFIGS` in `scripts/codegen.js`, and the
-sample tests in `scripts/codegen.test.js` (the ones that name the sample, `codegen.sample.yml` or the sample schema
-excerpt). When you replace the sample type `Item` of the CK model with your own types, do the same: the excerpt test
-needs `Item` and `ItemStatus`.
+`graphql/sample.schema.graphql`, `scripts/sample-schema.test.js` (and its entry in `test:codegen`), the
+`codegen:sample` script, and `npm run codegen:sample` in `devops-build/run-tests.yml` and the Dockerfile.
 
 Generated types and services end in `Dto` (a query `GetAssets` gives `GetAssetsQueryDto` and the service
 `GetAssetsDtoGQL`), ids are `string`, and every object type carries a required `__typename` (the root query type
-none), so test fixtures of a query result name it. `npm run test:codegen` tests the codegen driver and the sample
-excerpt (and the certificate check of `npm start`).
+none), so test fixtures of a query result name it. `npm run test:codegen` tests the sample excerpt and the certificate
+check of `npm start`.
 
 ## Project Structure
 

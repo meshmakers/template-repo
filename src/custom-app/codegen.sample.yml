@@ -1,9 +1,8 @@
-# GraphQL code generation for the optional sample query in src/app/sample/graphQL/*.graphql.
+# GraphQL code generation for the optional sample query in src/app/sample/graphQL/*.graphql (npm run codegen:sample).
 #
-# npm run codegen generates it together with codegen.yml. Its schema is fixed: graphql/ci.schema.graphql plus
-# graphql/sample.schema.graphql, a hand-derived excerpt of the sample CK model, so it ignores your tenant schema and
-# generates the same code everywhere. When you change the sample query or the sample CK model, update the excerpt;
-# npm run test:codegen fails when it no longer matches the CK model. The generated files are not committed.
+# Its schema is fixed: graphql/ci.schema.graphql plus graphql/sample.schema.graphql, a hand-derived excerpt of the
+# sample CK model. When you change the sample query or the sample CK model, update the excerpt; npm run test:codegen
+# fails when it no longer matches the CK model. The generated files are not committed.
 #
 # Options as in codegen.yml.
 overwrite: true

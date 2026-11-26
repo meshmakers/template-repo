@@ -1,11 +1,11 @@
-# GraphQL code generation for the app's own queries in src/app/graphQL/*.graphql.
+# GraphQL code generation for the app's own queries in src/app/graphQL/*.graphql (npm run codegen).
 #
-# npm run codegen generates this config and codegen.sample.yml (scripts/codegen.js); npm start, npm test, npm run lint
-# and the builds run it first, and so do the pipeline and the Docker build. The generated files are not committed.
+# Run npm run codegen (and npm run codegen:sample for the sample) after cloning and after changing a .graphql file;
+# CI and the Docker build run both. The generated files are not committed.
 #
-# Schema, the first that exists: OCTO_GRAPHQL_SCHEMA, schema.json (your tenant's export, gitignored),
-# graphql/ci.schema.json (your model, committed for CI), graphql/ci.schema.graphql (a fresh tenant, committed).
-# The queries here must work on a fresh tenant (System CKs and Basic) until you commit graphql/ci.schema.json.
+# Schema: graphql/ci.schema.graphql, the committed schema of a fresh tenant (System CKs and Basic). Generate against
+# another file with OCTO_GRAPHQL_SCHEMA, for example your tenant's export: OCTO_GRAPHQL_SCHEMA=schema.json npm run codegen.
+# Once your queries use your own CK model, commit that export (graphql/ci.schema.json) and point the default here at it.
 #
 # typesSuffix: generated types and services end in Dto (GetAssetsQueryDto, GetAssetsDtoGQL).
 # onlyOperationTypes: globalTypes.ts holds only the enums and inputs the operations use.
@@ -14,7 +14,7 @@
 # inputMaybeValue: nullable variables and input fields are typed T | null, as IQueryVariablesDto of @meshmakers/octo-services.
 # scalars: ids are strings, every other scalar any.
 overwrite: true
-schema: '${OCTO_GRAPHQL_SCHEMA:schema.json}'
+schema: '${OCTO_GRAPHQL_SCHEMA:graphql/ci.schema.graphql}'
 documents: 'src/app/graphQL/*.graphql'
 generates:
   src/app/graphQL/globalTypes.ts:
