@@ -67,7 +67,6 @@ Without the files `npm start` stops at once and prints these commands. The files
 ```bash
 cd src/<your-app-name>/
 npm install
-npm run codegen   # the GraphQL code is not committed
 npm start
 ```
 
@@ -243,7 +242,6 @@ Your browser has to trust the local root CA of the stack, otherwise the sign-in 
 ```bash
 cd src/<your-app>
 npm install
-npm run codegen   # after cloning and after changing a .graphql file
 npm start       # https dev server at https://localhost:4300 with hot reload
 npm run lint    # Check code quality
 npm test        # Run unit tests
@@ -265,29 +263,44 @@ Everything of the sample lives in `src/<app>/src/app/sample/`. To drop it, delet
 
 ### 5. Generate the GraphQL types
 
-The GraphQL code of the app is generated, not committed: `globalTypes.ts` and one `*.generated.ts` per query in
-`src/<app>/src/app/graphQL/` are ignored by git. After cloning and after changing a `.graphql` file run
-`npm run codegen` in `src/<app>`; CI and the Docker build run it. A query the schema cannot answer fails it.
+`npm run codegen` turns the queries in `src/<app>/src/app/graphQL/*.graphql` into typed Angular services. It reads
+the GraphQL schema of your tenant from `src/<app>/schema.json`:
 
-**Schema.** `codegen.yml` reads `src/<app>/graphql/ci.schema.graphql`, the committed schema of a fresh tenant (only the
-System Construction Kits and Basic). To generate against your own tenant, export its schema (with your AI agent, the
-MCP tool `export_runtime_graphql_sdl` returns it) as `src/<app>/schema.json` (gitignored) and run
-`OCTO_GRAPHQL_SCHEMA=schema.json npm run codegen`. Your own queries go into `src/<app>/src/app/graphQL/`. As soon as they
-use your own CK model, commit that export as `graphql/ci.schema.json` and point the default schema in `codegen.yml` at
-it, or the pipeline cannot generate them; refresh it the same way when the model changes.
+1. Export the schema of your tenant: with your AI agent, the MCP tool `export_runtime_graphql_sdl` returns it as
+   introspection JSON; save that JSON as `src/<app>/schema.json`. If you have the schema as SDL instead
+   (`schema.graphql`), tell codegen with the environment variable `OCTO_GRAPHQL_SCHEMA`:
+   `OCTO_GRAPHQL_SCHEMA=schema.graphql npm run codegen`. Both files are tenant specific and ignored by git.
+2. Run `npm run codegen` in `src/<app>`.
 
-**The sample** (`src/<app>/src/app/sample/`): its generated code is committed, so the app builds without the sample CK
-model. To show the items on the home page, import the sample CK model into your tenant (the tenant script does that,
-see [Set up the tenant](#1-set-up-the-tenant)) and set `SAMPLE_ITEMS_ENABLED` to `true` in
-`src/<app>/src/app/sample/sample-items.config.ts`. Only when you change the sample query, export the schema of a tenant
-with the sample model and run `npm run codegen:sample` (config `codegen.sample.yml`).
+**Fresh tenant** (only the System Construction Kits and Basic, no app model): this works right after `init.sh`. The
+template's own query (`getMaintenanceMode.graphql`) uses only System types, and the sample query is not part of
+`npm run codegen`. Put your own queries next to it in `src/<app>/src/app/graphQL/`.
 
-**Removing the sample**: delete `src/<app>/src/app/sample/` and its use in the home page, `codegen.sample.yml` and the
-`codegen:sample` script.
+**With the sample model**: import the sample CK model of this template into your tenant (the tenant script does
+that, see [Set up the tenant](#1-set-up-the-tenant)), then set `SAMPLE_ITEMS_ENABLED` to `true`
+in `src/<app>/src/app/sample/sample-items.config.ts`. The generated code of the sample query is committed, so that
+is the only step. Only when you change the sample query, export the schema again and run `npm run codegen:sample`
+(config `codegen.sample.yml`).
 
-Generated types and services end in `Dto` (a query `GetAssets` gives `GetAssetsQueryDto` and the service
-`GetAssetsDtoGQL`), ids are `string`, and every object type carries a required `__typename` (the root operation types
-none), so test fixtures of a query result name it. `npm run test:codegen` tests the certificate check of `npm start`.
+The generated types and services carry the suffix `Dto` (`typesSuffix` in `codegen.yml`): a query `GetAssets` gives
+`GetAssetsQueryDto` and the injectable service `GetAssetsDtoGQL`.
+
+**Check the queries**: `npm run codegen:check` validates the queries in `src/app/graphQL/` against a schema without
+writing files, and fails when a query needs a type that schema does not have. It takes the first schema that applies:
+
+1. a file you name: `node scripts/codegen-check.js codegen.yml <schema file>`;
+2. the file in `OCTO_GRAPHQL_SCHEMA` (the same variable `npm run codegen` reads);
+3. `src/<app>/schema.json`, the export of your own tenant (step 1 above; gitignored, so only on your machine);
+4. `src/<app>/graphql/ci.schema.json`, an introspection JSON you commit for CI;
+5. `src/<app>/graphql/ci.schema.graphql`, the committed SDL of a fresh tenant (the template's own check).
+
+SDL (`.graphql`) and introspection JSON (`.json`, as `export_runtime_graphql_sdl` returns it) both work. The output
+names the schema it used. So on your machine, with `schema.json` exported, `npm run codegen:check` checks your queries
+against your own model. For CI, where `schema.json` does not exist, commit the same export as
+`graphql/ci.schema.json` once your queries use your own CK model; the pipeline then checks against it.
+`npm run test:codegen` tests the check itself (and the certificate check of `npm start`); the pipeline runs both
+before lint. Its tests check your queries against that same CI schema, and use `graphql/ci.schema.graphql` as the
+fresh tenant schema without the sample type, so keep that file when you add `graphql/ci.schema.json`.
 
 ## Project Structure
 

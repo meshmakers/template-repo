@@ -16,7 +16,8 @@
     "lint:fix": "ng lint --fix",
     "codegen": "graphql-codegen --config codegen.yml",
     "codegen:sample": "graphql-codegen --config codegen.sample.yml",
-    "test:codegen": "node --test scripts/check-dev-certs.test.js",
+    "codegen:check": "node scripts/codegen-check.js",
+    "test:codegen": "node --test scripts/codegen-check.test.js scripts/check-dev-certs.test.js",
     "postinstall": "node src/environments/version.ts",
     "format": "prettier --write \"src/**/*.{ts,html,scss}\"",
     "format:check": "prettier --check \"src/**/*.{ts,html,scss}\""

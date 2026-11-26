@@ -1,20 +1,21 @@
-# GraphQL code generation for the app's own queries in src/app/graphQL/*.graphql (npm run codegen).
+# GraphQL code generation for the app's own queries (npm run codegen).
 #
-# Run npm run codegen after cloning and after changing a .graphql file; CI and the Docker build run it. The generated
-# files are not committed. The sample's code is committed (codegen.sample.yml).
+# Schema: the GraphQL schema of your tenant, by default `schema.json` in this folder - the
+# introspection JSON that the MCP tool `export_runtime_graphql_sdl` returns. Point it at another
+# file with the environment variable OCTO_GRAPHQL_SCHEMA, for example an SDL download:
+#   OCTO_GRAPHQL_SCHEMA=schema.graphql npm run codegen
+# The file is tenant specific and not committed (.gitignore).
 #
-# Schema: graphql/ci.schema.graphql, the committed schema of a fresh tenant (System CKs and Basic). Generate against
-# another file with OCTO_GRAPHQL_SCHEMA, for example your tenant's export: OCTO_GRAPHQL_SCHEMA=schema.json npm run codegen.
-# Once your queries use your own CK model, commit that export (graphql/ci.schema.json) and point the default here at it.
+# Documents: only `src/app/graphQL/*.graphql`. They must use types every tenant has (the System
+# CKs), so codegen also runs on a fresh tenant. The sample query of the template lives in
+# `src/app/sample/graphQL/` and has its own config (codegen.sample.yml, npm run codegen:sample)
+# because its type exists only after the sample CK model is imported.
 #
-# typesSuffix: generated types and services end in Dto (GetAssetsQueryDto, GetAssetsDtoGQL).
-# onlyOperationTypes: globalTypes.ts holds only the enums and inputs the operations use.
-# importSchemaTypesFrom: the operation files import those types from globalTypes.ts.
-# nonOptionalTypename / skipTypeNameForRoot: every object type carries a required __typename, the root query none.
-# inputMaybeValue: nullable variables and input fields are typed T | null, as IQueryVariablesDto of @meshmakers/octo-services.
-# scalars: ids are strings, every other scalar any.
+# Check: npm run codegen:check runs this config in memory against your schema.json, a committed
+# graphql/ci.schema.json or graphql/ci.schema.graphql (the first that exists; see scripts/codegen-check.js).
+# typesSuffix: every generated type and service gets the suffix Dto (GetAssetsQueryDto, GetAssetsDtoGQL).
 overwrite: true
-schema: '${OCTO_GRAPHQL_SCHEMA:graphql/ci.schema.graphql}'
+schema: '${OCTO_GRAPHQL_SCHEMA:schema.json}'
 documents: 'src/app/graphQL/*.graphql'
 generates:
   src/app/graphQL/globalTypes.ts:

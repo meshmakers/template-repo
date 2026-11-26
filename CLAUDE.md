@@ -71,9 +71,6 @@ cd src/custom-app
 # Install dependencies
 npm install
 
-# Generate the GraphQL code (after cloning and after changing a .graphql file)
-npm run codegen
-
 # Start dev server (default: http://localhost:4200)
 npm start
 
@@ -86,8 +83,11 @@ npm test
 # Production build
 npm run build:prod
 
-# Tests of the certificate check
-npm run test:codegen
+# GraphQL codegen (after adding .graphql files)
+npm run codegen
+
+# CI check: queries valid for a fresh tenant, and its tests
+npm run codegen:check && npm run test:codegen
 ```
 
 ## npm install-script policy
@@ -131,15 +131,14 @@ Runtime config loaded from `/assets/config.json`. In Docker, environment variabl
 3. Run `npm run codegen`
 4. Import generated services in your components
 
-GraphQL code of the app is generated, not committed: `globalTypes.ts` and the `*.generated.ts` files of `src/app/graphQL/`
-are gitignored. After cloning and after changing a `.graphql` file run `npm run codegen`; CI and the Docker build run it.
-`codegen.yml` reads the committed `graphql/ci.schema.graphql` (a fresh tenant) unless `OCTO_GRAPHQL_SCHEMA` names another
-file (your tenant's `schema.json` export, gitignored); once the queries use your own model, commit that export as
-`graphql/ci.schema.json` and point the default in `codegen.yml` at it. The optional sample (items table on the home page)
-lives in `src/app/sample/`: its generated code is committed, `codegen.sample.yml` (`npm run codegen:sample`) regenerates
-it by hand against a tenant schema that has the sample CK model, and it is switched on with `SAMPLE_ITEMS_ENABLED` in
-`src/app/sample/sample-items.config.ts` (default `false`). Generated types and services end in `Dto`, ids are `string`,
-every object type has a required `__typename`.
+`codegen.yml` covers only `src/app/graphQL/*.graphql`; those queries must work on a fresh tenant (System CKs + Basic).
+Generated types and services carry the suffix `Dto` (`typesSuffix`: `GetAssetsQueryDto`, `GetAssetsDtoGQL`).
+`npm run codegen:check` validates them in memory against the first schema that exists: the argument, `OCTO_GRAPHQL_SCHEMA`,
+the local `schema.json`, a committed `graphql/ci.schema.json` (a partner's own model, introspection JSON), the committed
+`graphql/ci.schema.graphql` (fresh tenant, the template's CI);
+`npm run test:codegen` tests that check. The optional sample (items table on the home page) lives in `src/app/sample/`:
+its query needs the sample CK model, has its own `codegen.sample.yml` (`npm run codegen:sample`) and is switched on
+with `SAMPLE_ITEMS_ENABLED` in `src/app/sample/sample-items.config.ts` (default `false`).
 
 Example query file (`src/app/graphQL/getAssets.graphql`):
 ```graphql
